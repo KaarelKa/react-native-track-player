@@ -509,3 +509,78 @@ export async function getRepeatMode(): Promise<RepeatMode> {
 export async function retry() {
   return TrackPlayer.retry();
 }
+function download(tracks: Track | Track[]) {
+  if (Array.isArray(tracks)) {
+    tracks = [...tracks]
+  } else {
+    tracks = [tracks]
+  }
+
+  if (tracks.length < 1) return
+
+  for (let i = 0; i < tracks.length; i++) {
+    // Clone the object before modifying it
+    tracks[i] = { ...tracks[i] }
+
+    // Resolve the URLs
+    tracks[i].url = resolveImportedPath(tracks[i].url)
+    tracks[i].artwork = resolveImportedPath(tracks[i].artwork)
+  }
+  return TrackPlayer.download(tracks)
+}
+
+function removeDownload(trackId: string) {
+  return TrackPlayer.removeDownload(trackId)
+}
+
+async function getCompletedDownloads(): Promise<string[]> {
+  return TrackPlayer.getCompletedDownloads()
+}
+
+export default {
+  // MARK: - General API
+  setupPlayer,
+  destroy,
+  registerPlaybackService,
+  addEventListener,
+
+  // MARK: - Queue API
+  add,
+  remove,
+  removeUpcomingTracks,
+  skip,
+  skipToNext,
+  skipToPrevious,
+
+  // MARK: - Control Center / Notifications API
+  updateOptions,
+  updateMetadataForTrack,
+  clearNowPlayingMetadata,
+  updateNowPlayingMetadata,
+
+  // MARK: - Player API
+  reset,
+  play,
+  pause,
+  stop,
+  seekTo,
+  setVolume,
+  setRate,
+  setRepeatMode,
+
+  // MARK: - Getters
+  getVolume,
+  getRate,
+  getTrack,
+  getQueue,
+  getCurrentTrack,
+  getDuration,
+  getBufferedPosition,
+  getPosition,
+  getState,
+  getRepeatMode,
+
+  download,
+  removeDownload,
+  getCompletedDownloads,
+}

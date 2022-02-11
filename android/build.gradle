@@ -56,6 +56,8 @@ dependencies {
     //noinspection GradleDynamicVersion
     implementation "com.facebook.react:react-native:+"
 
+    implementation "com.google.android.exoplayer:exoplayer-ui:${exoPlayerVersion}"
+    
     // Make sure we're using androidx
     implementation "androidx.core:core-ktx:1.9.0"
     implementation "androidx.localbroadcastmanager:localbroadcastmanager:1.1.0"
