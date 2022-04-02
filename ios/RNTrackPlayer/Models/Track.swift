@@ -11,12 +11,21 @@ import MediaPlayer
 import AVFoundation
 import SwiftAudioEx
 
-class Track: AudioItem, TimePitching, AssetOptionsProviding {
+class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
+    func getURLAsset() -> AVURLAsset? {
+        return asset;
+    }
+    
+    func getUrl() -> URL? {
+        return URL(string: url.isLocal ? url.value.path : url.value.absoluteString);
+    }
+    
     let url: MediaURL
-
-    @objc var title: String?
-    @objc var artist: String?
-
+    
+    @objc var title: String
+    @objc var artist: String
+    let id: String
+    
     var date: String?
     var desc: String?
     var genre: String?
@@ -26,15 +35,26 @@ class Track: AudioItem, TimePitching, AssetOptionsProviding {
     var userAgent: String?
     let pitchAlgorithm: String?
     var isLiveStream: Bool?
-
-    var album: String?
-    var artwork: MPMediaItemArtwork?
-
-    private var originalObject: [String: Any] = [:]
-
+    var asset: AVURLAsset?
+    
+    
+    @objc var album: String?
+    @objc var artwork: MPMediaItemArtwork?
+    
+    private var originalObject: [String: Any]
+    
     init?(dictionary: [String: Any]) {
         guard let url = MediaURL(object: dictionary["url"]) else { return nil }
         self.url = url
+        self.title = title
+        self.artist = artist
+        self.id = dictionary["id"] as? String ?? ""
+        
+        self.date = dictionary["date"] as? String
+        self.album = dictionary["album"] as? String
+        self.genre = dictionary["genre"] as? String
+        self.desc = dictionary["description"] as? String
+        self.duration = dictionary["duration"] as? Double
         self.headers = dictionary["headers"] as? [String: Any]
         self.userAgent = dictionary["userAgent"] as? String
         self.pitchAlgorithm = dictionary["pitchAlgorithm"] as? String
@@ -104,6 +124,15 @@ class Track: AudioItem, TimePitching, AssetOptionsProviding {
         }
     }
 
+    
+//    func getUrl() -> String? {
+//        return title
+//    }
+//
+//    func getURLAsset() -> String? {
+//        return asset
+//    }
+    
     // MARK: - TimePitching Protocol
 
     func getPitchAlgorithmType() -> AVAudioTimePitchAlgorithm {

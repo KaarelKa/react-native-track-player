@@ -27,6 +27,8 @@ target 'example' do
     inherit! :complete
     # Pods for testing
   end
+  
+  pod 'SwiftAudioEx', :git => 'https://github.com/katerynapeikova/SwiftAudioEx', :branch => 'offline'
 
   # Enables Flipper.
   #
