@@ -4,8 +4,7 @@ require_relative '../node_modules/@react-native-community/cli-platform-ios/nativ
 # use cocoapods CDN per https://blog.cocoapods.org/CocoaPods-1.7.2/
 source 'https://cdn.cocoapods.org/'
 
-platform :ios, '11.0'
-install! 'cocoapods', :deterministic_uuids => false
+platform :ios, '12.0'
 
 target 'example' do
   config = use_native_modules!
@@ -29,6 +28,7 @@ target 'example' do
   end
   
   pod 'SwiftAudioEx', :git => 'https://github.com/katerynapeikova/SwiftAudioEx', :branch => 'offline'
+  pod 'VidLoader', :git => 'https://github.com/katerynapeikova/VidLoader.git'
 
   # Enables Flipper.
   #

@@ -17,10 +17,15 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
     }
     
     func getUrl() -> URL? {
-        return URL(string: url.isLocal ? url.value.path : url.value.absoluteString);
+        guard let url = url else { return nil}
+        if(url.isLocal){
+            return URL(string: url.value.path)
+        }else{
+            return URL(string: url.value.absoluteString)
+        }
     }
     
-    let url: MediaURL
+    let url: MediaURL?
     
     @objc var title: String
     @objc var artist: String
@@ -46,6 +51,10 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
     init?(dictionary: [String: Any]) {
         guard let url = MediaURL(object: dictionary["url"]) else { return nil }
         self.url = url
+        guard let title = dictionary["title"] as? String,
+            let artist = dictionary["artist"] as? String
+            else { return nil }
+        
         self.title = title
         self.artist = artist
         self.id = dictionary["id"] as? String ?? ""
@@ -86,7 +95,7 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
     // MARK: - AudioItem Protocol
 
     func getSourceUrl() -> String {
-        return url.isLocal ? url.value.path : url.value.absoluteString
+        return ""
     }
 
     func getArtist() -> String? {
@@ -102,7 +111,7 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
     }
 
     func getSourceType() -> SourceType {
-        return url.isLocal ? .file : .stream
+        return .stream
     }
 
     func getArtwork(_ handler: @escaping (UIImage?) -> Void) {
@@ -124,14 +133,6 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
         }
     }
 
-    
-//    func getUrl() -> String? {
-//        return title
-//    }
-//
-//    func getURLAsset() -> String? {
-//        return asset
-//    }
     
     // MARK: - TimePitching Protocol
 
