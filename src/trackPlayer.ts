@@ -533,8 +533,16 @@ async function removeDownload(trackId: string): Promise<void> {
   return TrackPlayer.removeDownload(trackId)
 }
 
+async function removeDownloadStartsWith(prefix: string): Promise<void> {
+  return TrackPlayer.removeDownloadStartsWith(prefix)
+}
+
 async function getCompletedDownloads(): Promise<string[]> {
   return TrackPlayer.getCompletedDownloads()
+}
+
+async function getActiveDownloads(): Promise<string[]> {
+  return TrackPlayer.getActiveDownloads()
 }
 
 export default {
@@ -582,5 +590,7 @@ export default {
 
   download,
   removeDownload,
+  removeDownloadStartsWith,
   getCompletedDownloads,
+  getActiveDownloads,
 }
