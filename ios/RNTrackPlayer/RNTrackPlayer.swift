@@ -419,11 +419,9 @@ public class RNTrackPlayer: RCTEventEmitter, AudioSessionControllerDelegate {
             let location = items[track.id]?.location
             if location != nil {
                 let asset = vidLoader.asset(location: location!)
-                let item = DefaultAudioItem(audioUrl: "", sourceType: .file, urlAsset: asset)
-                tracks.append(item)
-            } else {
-                tracks.append(track)
+                track.asset = asset;
             }
+            tracks.append(track)
         }
 
         try? player.add(
