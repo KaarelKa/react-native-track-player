@@ -1082,9 +1082,15 @@ public class RNTrackPlayer: RCTEventEmitter, AudioSessionControllerDelegate {
         items[item.identifier] = VideoData(identifier: item.identifier,
                                            title: item.title ?? "default title", state: item.state,
                                            stringURL:  item.mediaLink, location: item.location)
-        print(item.state)
-        sendEvent(withName: "download-changed",
-                  body: ["trackId": item.identifier, "completedDownloads": getCompletedDownloads(), "activeDownloads": getActiveDownloads()])
+
+        // print(item.state)
+        if item.state == DownloadState.running(0) ||
+            item.state == DownloadState.running(1) ||
+            item.state == DownloadState.completed ||
+            item.state == DownloadState.keyLoaded {
+            sendEvent(withName: "download-changed",
+                      body: ["trackId": item.identifier, "completedDownloads": getCompletedDownloads(), "activeDownloads": getActiveDownloads()])
+        }
 
         save(items: items)
     }
