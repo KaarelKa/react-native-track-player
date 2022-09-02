@@ -343,6 +343,14 @@ async function getActiveDownloads(): Promise<string[]> {
   return TrackPlayer.getActiveDownloads()
 }
 
+async function getRemovingDownloads(): Promise<string[]> {
+  return TrackPlayer.getRemovingDownloads()
+}
+
+async function getFailedDownloads(): Promise<string[]> {
+  return TrackPlayer.getFailedDownloads()
+}
+
 async function setShouldDownloadOnWifiOnly(shouldDownloadOnWifiOnly: boolean): Promise<void> {
   return TrackPlayer.setDownloadOnWifiOnly(shouldDownloadOnWifiOnly)
 }
@@ -396,5 +404,7 @@ export default {
   removeDownloadStartsWith,
   getCompletedDownloads,
   getActiveDownloads,
+  getRemovingDownloads,
+  getFailedDownloads,
   setShouldDownloadOnWifiOnly,
 }

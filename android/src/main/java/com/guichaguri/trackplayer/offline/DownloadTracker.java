@@ -150,7 +150,7 @@ public class DownloadTracker {
         for (Map.Entry<String, Download> downloadEntry : downloads.entrySet()) {
             if (downloadEntry.getKey().startsWith(prefix)) {
                 Download download = downloadEntry.getValue();
-                Log.d("Offline", "remove " + String.valueOf(download));
+                Log.d("Offline", "remove " + download.request.id);
                 if (download != null) {
                     DownloadService.sendRemoveDownload(
                             context, DemoDownloadService.class, download.request.id, /* foreground= */ false);
@@ -172,6 +172,19 @@ public class DownloadTracker {
         return result;
     }
 
+    public List<String> getRemovingDownloads() {
+      List<Download> downloadsList = new ArrayList(downloads.values());
+      List<String> result = new ArrayList<>();
+
+      for (Download download : downloadsList) {
+          if (download != null && download.state == Download.STATE_REMOVING) {
+              result.add(download.request.id);
+          }
+      }
+
+      return result;
+    }
+
     public List<String> getActiveDownloads() {
         List<Download> downloadsList = new ArrayList(downloads.values());
         List<String> result = new ArrayList<>();
@@ -187,6 +200,20 @@ public class DownloadTracker {
         return result;
     }
 
+
+    public List<String> getFailedDownloads() {
+      List<Download> downloadsList = new ArrayList(downloads.values());
+      List<String> result = new ArrayList<>();
+
+      for (Download download : downloadsList) {
+          if (download != null && download.state == Download.STATE_FAILED) {
+              result.add(download.request.id);
+          }
+      }
+
+      return result;
+  }
+
     private void loadDownloads() {
         try (DownloadCursor loadedDownloads = downloadIndex.getDownloads()) {
             while (loadedDownloads.moveToNext()) {
@@ -198,13 +225,36 @@ public class DownloadTracker {
         }
     }
 
+    public String getStatusString(Download download) {
+      switch(download.state) {
+        case Download.STATE_COMPLETED:
+          return "completed";
+            case Download.STATE_DOWNLOADING:
+          return "running";
+            case Download.STATE_FAILED:
+          return "failed";
+            case Download.STATE_QUEUED:
+          return "waiting";
+            case Download.STATE_REMOVING:
+          return "removing";
+            case Download.STATE_RESTARTING:
+          return "restarting";
+            case Download.STATE_STOPPED:
+          return "paused";
+        default:
+          return "unknown";
+          // code block
+      }
+    }
+
     private class DownloadManagerListener implements DownloadManager.Listener {
 
         @Override
         public void onDownloadChanged(DownloadManager downloadManager, Download download) {
             downloads.put(download.request.id, download);
+            String status = getStatusString(download);
             for (Listener listener : listeners) {
-                String status = download.state == Download.STATE_COMPLETED ? "completed" : "unknown";
+                // String status = download.state == Download.STATE_COMPLETED ? "completed" : "unknown";
                 listener.onDownloadsChanged(download.request.id, status);
             }
         }

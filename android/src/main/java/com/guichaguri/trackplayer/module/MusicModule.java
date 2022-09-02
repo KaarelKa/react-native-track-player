@@ -547,10 +547,10 @@ public class MusicModule extends ReactContextBaseJavaModule implements ServiceCo
 
     @ReactMethod
     public void removeDownload(String trackId, final Promise callback) {
-        Log.d("Offline", "remove download method");
-        // TODO: make method async
-        downloadTracker.removeDownload(trackId);
-        callback.resolve(null);
+      Log.d("Offline", "remove download method");
+      // TODO: make method async
+      downloadTracker.removeDownload(trackId);
+      callback.resolve(null);
     }
 
     @ReactMethod

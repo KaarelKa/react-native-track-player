@@ -799,6 +799,18 @@ public class RNTrackPlayer: RCTEventEmitter  {
         let inProgress = NSArray(array: Array(filteredInProgress.keys))
         return inProgress
     }
+
+    private func getFailedDownloads() -> NSArray {
+        let filteredFailed = items.filter({ $1.state == DownloadState.failed })
+        let failedArray = NSArray(array: Array(filteredFailed.keys))
+        return failedArray
+    }
+
+    private func getRemovingDownloads() -> NSArray {
+        let filteredCanceled = items.filter({ $1.state == DownloadState.canceled })
+        let canceledArray = NSArray(array: Array(filteredCanceled.keys))
+        return canceledArray
+    }
     
     @objc(getCompletedDownloads:rejecter:)
     public func getCompletedDownloads(resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
@@ -810,6 +822,16 @@ public class RNTrackPlayer: RCTEventEmitter  {
     public func getActiveDownloads(resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
         resolve(getActiveDownloads())
     }
+
+    @objc(getFailedDownloads:rejecter:)
+    public func getFailedDownloads(resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        resolve(getFailedDownloads())
+    }
+
+    @objc(getRemovingDownloads:rejecter:)
+    public func getRemovingDownloads(resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        resolve(getRemovingDownloads())
+    }
     
     public func isPaused(item: ItemInformation) -> NSNumber {
         switch item.state {
@@ -819,6 +841,31 @@ public class RNTrackPlayer: RCTEventEmitter  {
             return false
         }
     }
+
+    func getStateString(_ state: DownloadState) -> String {
+      switch state {
+      case .failed:
+        return "failed"
+      case .canceled:
+        return "removing"
+      case .completed:
+        return "completed"
+      case .unknown:
+        return "unknown"
+      case .paused:
+        return "paused"
+      case .noConnection:
+        return "noConnection"
+      case .keyLoaded:
+        return "keyLoaded"
+      case .running, .running(0), .running(1):
+        return "running anyway"
+      case .prefetching:
+        return "prefetching"
+      case .waiting:
+        return "waiting"
+      }
+  }
     
     private func update(item: ItemInformation) {
         items[item.identifier] = VideoData(identifier: item.identifier,
@@ -826,16 +873,10 @@ public class RNTrackPlayer: RCTEventEmitter  {
                                            stringURL:  item.mediaLink, path: item.path)
 
         save(items: items)
-        if item.state == DownloadState.running(0) ||
-            item.state == DownloadState.running(1) ||
-            item.state == DownloadState.completed ||
-            item.state == DownloadState.waiting ||
-            item.state == DownloadState.keyLoaded ||
-            isPaused(item: item).boolValue {
-            let state = item.state == DownloadState.completed ? "completed" : "unknown";
-            sendEvent(withName: "download-changed",
-                      body: ["trackId": item.identifier, "state": state, "completedDownloads": getCompletedDownloads(), "activeDownloads": getActiveDownloads()])
-        }
+
+        let state = getStateString(item.state);
+        sendEvent(withName: "download-changed",
+                  body: ["trackId": item.identifier, "state": state, "completedDownloads": getCompletedDownloads(), "activeDownloads": getActiveDownloads(), "failedDownloads": getFailedDownloads()])
     }
 
     private func setupObservers() {
