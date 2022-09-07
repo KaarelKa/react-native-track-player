@@ -187,6 +187,7 @@ public class MusicModule extends ReactContextBaseJavaModule implements ServiceCo
         bundle.putString("state", status);
         bundle.putStringArrayList("completedDownloads", (ArrayList<String>) downloadTracker.getDownloads());
         bundle.putStringArrayList("activeDownloads", (ArrayList<String>) downloadTracker.getActiveDownloads());
+        bundle.putStringArrayList("removingDownloads", (ArrayList<String>) downloadTracker.getRemovingDownloads());
         waitForConnection(() -> binder.emit(
                 MusicEvents.DOWNLOAD_CHANGED,
                 bundle));
@@ -525,7 +526,7 @@ public class MusicModule extends ReactContextBaseJavaModule implements ServiceCo
             Map<String, String> headers = new HashMap<>();
             if (httpHeaders != null) {
                 for (String header : httpHeaders.keySet()) {
-                    headers.put(header, httpHeaders.getString(header));
+                  headers.put(header, httpHeaders.getString(header));
                 }
             }
 
@@ -565,6 +566,18 @@ public class MusicModule extends ReactContextBaseJavaModule implements ServiceCo
     public void getActiveDownloads(final Promise callback) {
         Log.d("Offline", "get active method");
         callback.resolve(Arguments.fromList(downloadTracker.getActiveDownloads()));
+    }
+
+    @ReactMethod
+    public void getRemovingDownloads(final Promise callback) {
+        Log.d("Offline", "get removing method");
+        callback.resolve(Arguments.fromList(downloadTracker.getRemovingDownloads()));
+    }
+
+    @ReactMethod
+    public void getFailedDownloads(final Promise callback) {
+        Log.d("Offline", "get failed method");
+        callback.resolve(Arguments.fromList(downloadTracker.getFailedDownloads()));
     }
 
     @ReactMethod

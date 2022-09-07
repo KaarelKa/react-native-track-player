@@ -38,6 +38,7 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.util.Log;
 import com.google.android.exoplayer2.util.Util;
 import com.google.android.exoplayer2.upstream.ResolvingDataSource;
+import com.google.android.exoplayer2.upstream.DataSpec;
 import com.guichaguri.trackplayer.R;
 import com.google.android.exoplayer2.scheduler.Requirements;
 
@@ -57,258 +58,258 @@ import java.util.stream.Collectors;
  */
 public class DownloadTracker {
 
+  /**
+   * Listens for changes in the tracked downloads.
+   */
+  public interface Listener {
+
     /**
-     * Listens for changes in the tracked downloads.
+     * Called when the tracked downloads changed.
      */
-    public interface Listener {
-
-        /**
-         * Called when the tracked downloads changed.
-         */
-        void onDownloadsChanged(String trackId, String status);
-    }
-
-    private static final String TAG = "DownloadTracker";
-
-    private final Context context;
-    private final DataSource.Factory dataSourceFactory;
-    private final CopyOnWriteArraySet<Listener> listeners;
-    private final HashMap<String, Download> downloads;
-    private final DownloadIndex downloadIndex;
-    private final DefaultTrackSelector.Parameters trackSelectorParameters;
-
-    public DownloadTracker(
-            Context context, DataSource.Factory dataSourceFactory, DownloadManager downloadManager) {
-        this.context = context.getApplicationContext();
-        this.dataSourceFactory = dataSourceFactory;
-        listeners = new CopyOnWriteArraySet<>();
-        downloads = new HashMap<>();
-        downloadIndex = downloadManager.getDownloadIndex();
-        trackSelectorParameters = DownloadHelper.getDefaultTrackSelectorParameters(context);
-        downloadManager.addListener(new DownloadManagerListener());
-        loadDownloads();
-    }
-
-    public void addListener(Listener listener) {
-        listeners.add(listener);
-    }
-
-    public void removeListener(Listener listener) {
-        listeners.remove(listener);
-    }
-
-    public boolean isDownloaded(String id) {
-        Download download = downloads.get(id);
-        return download != null && download.state != Download.STATE_FAILED;
-    }
-
-    public DownloadRequest getDownloadRequest(String id) {
-        Download download = downloads.get(id);
-        return download != null && download.state != Download.STATE_FAILED ? download.request : null;
-    }
-
-    public void startDownload(
-            String name,
-            Uri uri,
-            String id,
-            RenderersFactory renderersFactory, Map<String, String> httpHeaders) {
-
-        Download download = downloads.get(id);
-        Log.d("Offline", "start download value of " + String.valueOf(download));
-        DataSource.Factory dataSourceFactoryWithHeaders = new ResolvingDataSource.Factory(
-                dataSourceFactory,
-                dataSpec -> dataSpec.withRequestHeaders(httpHeaders));
-        if (download == null) {
-            new StartDownloadDialogHelper(
-                    DownloadHelper.forHls(context, uri, dataSourceFactoryWithHeaders, renderersFactory),
-                    name, id);
-        }
-    }
-
-    public void setDownloadOnWifiOnly(
-            Boolean shouldDownloadOnWifiOnly) {
-        Requirements requirements = new Requirements(Requirements.NETWORK);
-        if (shouldDownloadOnWifiOnly) {
-            requirements = new Requirements(Requirements.NETWORK_UNMETERED);
-        }
-        DownloadService.sendSetRequirements(
-                context, DemoDownloadService.class, requirements, /* foreground= */ false);
-    }
-
-    public void removeDownload(
-            String trackId) {
-        Download download = downloads.get(trackId);
-        Log.d("Offline", "remove " + String.valueOf(download));
-        if (download != null) {
-            DownloadService.sendRemoveDownload(
-                    context, DemoDownloadService.class, download.request.id, /* foreground= */ false);
-        }
-    }
-
-    public void removeDownloadStartsWith(
-            String prefix) {
-        for (Map.Entry<String, Download> downloadEntry : downloads.entrySet()) {
-            if (downloadEntry.getKey().startsWith(prefix)) {
-                Download download = downloadEntry.getValue();
-                Log.d("Offline", "remove " + download.request.id);
-                if (download != null) {
-                    DownloadService.sendRemoveDownload(
-                            context, DemoDownloadService.class, download.request.id, /* foreground= */ false);
-                }
-            }
-        }
-    }
-
-    public List<String> getDownloads() {
-        List<Download> downloadsList = new ArrayList(downloads.values());
-        List<String> result = new ArrayList<>();
-
-        for (Download download : downloadsList) {
-            if (download != null && download.state == Download.STATE_COMPLETED) {
-                result.add(download.request.id);
-            }
-        }
-
-        return result;
-    }
-
-    public List<String> getRemovingDownloads() {
-      List<Download> downloadsList = new ArrayList(downloads.values());
-      List<String> result = new ArrayList<>();
-
-      for (Download download : downloadsList) {
-          if (download != null && download.state == Download.STATE_REMOVING) {
-              result.add(download.request.id);
-          }
-      }
-
-      return result;
-    }
-
-    public List<String> getActiveDownloads() {
-        List<Download> downloadsList = new ArrayList(downloads.values());
-        List<String> result = new ArrayList<>();
-
-        List<Integer> states = Arrays.asList(Download.STATE_DOWNLOADING, Download.STATE_RESTARTING);
-
-        for (Download download : downloadsList) {
-            if (download != null && states.contains(download.state)) {
-                result.add(download.request.id);
-            }
-        }
-
-        return result;
-    }
-
-
-    public List<String> getFailedDownloads() {
-      List<Download> downloadsList = new ArrayList(downloads.values());
-      List<String> result = new ArrayList<>();
-
-      for (Download download : downloadsList) {
-          if (download != null && download.state == Download.STATE_FAILED) {
-              result.add(download.request.id);
-          }
-      }
-
-      return result;
+    void onDownloadsChanged(String trackId, String status);
   }
 
-    private void loadDownloads() {
-        try (DownloadCursor loadedDownloads = downloadIndex.getDownloads()) {
-            while (loadedDownloads.moveToNext()) {
-                Download download = loadedDownloads.getDownload();
-                downloads.put(download.request.id, download);
-            }
-        } catch (IOException e) {
-            Log.w(TAG, "Failed to query downloads", e);
-        }
-    }
+  private static final String TAG = "DownloadTracker";
 
-    public String getStatusString(Download download) {
-      switch(download.state) {
-        case Download.STATE_COMPLETED:
-          return "completed";
-            case Download.STATE_DOWNLOADING:
-          return "running";
-            case Download.STATE_FAILED:
-          return "failed";
-            case Download.STATE_QUEUED:
-          return "waiting";
-            case Download.STATE_REMOVING:
-          return "removing";
-            case Download.STATE_RESTARTING:
-          return "restarting";
-            case Download.STATE_STOPPED:
-          return "paused";
-        default:
-          return "unknown";
-          // code block
+  private final Context context;
+  private final DataSource.Factory dataSourceFactory;
+  private final CopyOnWriteArraySet<Listener> listeners;
+  private final HashMap<String, Download> downloads;
+  private final DownloadIndex downloadIndex;
+  private final DefaultTrackSelector.Parameters trackSelectorParameters;
+
+  public DownloadTracker(
+      Context context, DataSource.Factory dataSourceFactory, DownloadManager downloadManager) {
+    this.context = context.getApplicationContext();
+    this.dataSourceFactory = dataSourceFactory;
+    listeners = new CopyOnWriteArraySet<>();
+    downloads = new HashMap<>();
+    downloadIndex = downloadManager.getDownloadIndex();
+    trackSelectorParameters = DownloadHelper.getDefaultTrackSelectorParameters(context);
+    downloadManager.addListener(new DownloadManagerListener());
+    loadDownloads();
+  }
+
+  public void addListener(Listener listener) {
+    listeners.add(listener);
+  }
+
+  public void removeListener(Listener listener) {
+    listeners.remove(listener);
+  }
+
+  public boolean isDownloaded(String id) {
+    Download download = downloads.get(id);
+    return download != null && download.state != Download.STATE_FAILED;
+  }
+
+  public DownloadRequest getDownloadRequest(String id) {
+    Download download = downloads.get(id);
+    return download != null && download.state != Download.STATE_FAILED ? download.request : null;
+  }
+
+  public void startDownload(
+      String name,
+      Uri uri,
+      String id,
+      RenderersFactory renderersFactory, Map<String, String> httpHeaders) {
+
+    Download download = downloads.get(id);
+    Log.d("Offline", "start download value of " + String.valueOf(download) + "::" + httpHeaders);
+    DataSource.Factory dataSourceFactoryWithHeaders = new ResolvingDataSource.Factory(
+        dataSourceFactory,
+        dataSpec -> dataSpec.withRequestHeaders(httpHeaders));
+    if (download == null) {
+      new StartDownloadDialogHelper(
+          DownloadHelper.forHls(context, uri, dataSourceFactoryWithHeaders, renderersFactory),
+          name, id);
+    }
+  }
+
+  public void setDownloadOnWifiOnly(
+      Boolean shouldDownloadOnWifiOnly) {
+    Requirements requirements = new Requirements(Requirements.NETWORK);
+    if (shouldDownloadOnWifiOnly) {
+      requirements = new Requirements(Requirements.NETWORK_UNMETERED);
+    }
+    DownloadService.sendSetRequirements(
+        context, DemoDownloadService.class, requirements, /* foreground= */ false);
+  }
+
+  public void removeDownload(
+      String trackId) {
+    Download download = downloads.get(trackId);
+    Log.d("Offline", "remove " + String.valueOf(download));
+    if (download != null) {
+      DownloadService.sendRemoveDownload(
+          context, DemoDownloadService.class, download.request.id, /* foreground= */ false);
+    }
+  }
+
+  public void removeDownloadStartsWith(
+      String prefix) {
+    for (Map.Entry<String, Download> downloadEntry : downloads.entrySet()) {
+      if (downloadEntry.getKey().startsWith(prefix)) {
+        Download download = downloadEntry.getValue();
+        Log.d("Offline", "remove " + download.request.id);
+        if (download != null) {
+          DownloadService.sendRemoveDownload(
+              context, DemoDownloadService.class, download.request.id, /* foreground= */ false);
+        }
+      }
+    }
+  }
+
+  public List<String> getDownloads() {
+    List<Download> downloadsList = new ArrayList(downloads.values());
+    List<String> result = new ArrayList<>();
+
+    for (Download download : downloadsList) {
+      if (download != null && download.state == Download.STATE_COMPLETED) {
+        result.add(download.request.id);
       }
     }
 
-    private class DownloadManagerListener implements DownloadManager.Listener {
+    return result;
+  }
 
-        @Override
-        public void onDownloadChanged(DownloadManager downloadManager, Download download) {
-            downloads.put(download.request.id, download);
-            String status = getStatusString(download);
-            for (Listener listener : listeners) {
-                // String status = download.state == Download.STATE_COMPLETED ? "completed" : "unknown";
-                listener.onDownloadsChanged(download.request.id, status);
-            }
-        }
+  public List<String> getRemovingDownloads() {
+    List<Download> downloadsList = new ArrayList(downloads.values());
+    List<String> result = new ArrayList<>();
 
-        @Override
-        public void onDownloadRemoved(DownloadManager downloadManager, Download download) {
-            downloads.remove(download.request.id);
-            for (Listener listener : listeners) {
-                listener.onDownloadsChanged(download.request.id, "removed");
-            }
-        }
+    for (Download download : downloadsList) {
+      if (download != null && download.state == Download.STATE_REMOVING) {
+        result.add(download.request.id);
+      }
     }
 
-    private final class StartDownloadDialogHelper implements DownloadHelper.Callback {
-        private final DownloadHelper downloadHelper;
-        private final String name;
-        private final String id;
+    return result;
+  }
 
-        public StartDownloadDialogHelper(DownloadHelper downloadHelper, String name, String id) {
-            this.downloadHelper = downloadHelper;
-            this.name = name;
-            this.id = id;
-            downloadHelper.prepare(this);
-        }
+  public List<String> getActiveDownloads() {
+    List<Download> downloadsList = new ArrayList(downloads.values());
+    List<String> result = new ArrayList<>();
 
-        @Override
-        public void onPrepared(DownloadHelper helper) {
-            startDownload(id);
-            downloadHelper.release();
-        }
+    List<Integer> states = Arrays.asList(Download.STATE_DOWNLOADING, Download.STATE_RESTARTING);
 
-        @Override
-        public void onPrepareError(DownloadHelper helper, IOException e) {
-            Toast.makeText(context, R.string.download_start_error, Toast.LENGTH_LONG).show();
-            Log.e(
-                    TAG,
-                    e instanceof DownloadHelper.LiveContentUnsupportedException
-                            ? "Downloading live content unsupported"
-                            : "Failed to start download",
-                    e);
-        }
-
-        private void startDownload(String id) {
-            startDownload(buildDownloadRequest(id));
-        }
-
-        private void startDownload(DownloadRequest downloadRequest) {
-            Log.d("Offline", "start request");
-            DownloadService.sendAddDownload(
-                    context, DemoDownloadService.class, downloadRequest, /* foreground= */ false);
-        }
-
-        private DownloadRequest buildDownloadRequest(String id) {
-            return downloadHelper.getDownloadRequest(id, Util.getUtf8Bytes(name));
-        }
+    for (Download download : downloadsList) {
+      if (download != null && states.contains(download.state)) {
+        result.add(download.request.id);
+      }
     }
+
+    return result;
+  }
+
+
+  public List<String> getFailedDownloads() {
+    List<Download> downloadsList = new ArrayList(downloads.values());
+    List<String> result = new ArrayList<>();
+
+    for (Download download : downloadsList) {
+      if (download != null && download.state == Download.STATE_FAILED) {
+        result.add(download.request.id);
+      }
+    }
+
+    return result;
+  }
+
+  private void loadDownloads() {
+    try (DownloadCursor loadedDownloads = downloadIndex.getDownloads()) {
+      while (loadedDownloads.moveToNext()) {
+        Download download = loadedDownloads.getDownload();
+        downloads.put(download.request.id, download);
+      }
+    } catch (IOException e) {
+      Log.w(TAG, "Failed to query downloads", e);
+    }
+  }
+
+  public String getStatusString(Download download) {
+    switch (download.state) {
+      case Download.STATE_COMPLETED:
+        return "completed";
+      case Download.STATE_DOWNLOADING:
+        return "running";
+      case Download.STATE_FAILED:
+        return "failed";
+      case Download.STATE_QUEUED:
+        return "waiting";
+      case Download.STATE_REMOVING:
+        return "removing";
+      case Download.STATE_RESTARTING:
+        return "restarting";
+      case Download.STATE_STOPPED:
+        return "paused";
+      default:
+        return "unknown";
+      // code block
+    }
+  }
+
+  private class DownloadManagerListener implements DownloadManager.Listener {
+
+    @Override
+    public void onDownloadChanged(DownloadManager downloadManager, Download download) {
+      downloads.put(download.request.id, download);
+      String status = getStatusString(download);
+      for (Listener listener : listeners) {
+        // String status = download.state == Download.STATE_COMPLETED ? "completed" : "unknown";
+        listener.onDownloadsChanged(download.request.id, status);
+      }
+    }
+
+    @Override
+    public void onDownloadRemoved(DownloadManager downloadManager, Download download) {
+      downloads.remove(download.request.id);
+      for (Listener listener : listeners) {
+        listener.onDownloadsChanged(download.request.id, "removed");
+      }
+    }
+  }
+
+  private final class StartDownloadDialogHelper implements DownloadHelper.Callback {
+    private final DownloadHelper downloadHelper;
+    private final String name;
+    private final String id;
+
+    public StartDownloadDialogHelper(DownloadHelper downloadHelper, String name, String id) {
+      this.downloadHelper = downloadHelper;
+      this.name = name;
+      this.id = id;
+      downloadHelper.prepare(this);
+    }
+
+    @Override
+    public void onPrepared(DownloadHelper helper) {
+      startDownload(id);
+      downloadHelper.release();
+    }
+
+    @Override
+    public void onPrepareError(DownloadHelper helper, IOException e) {
+      Toast.makeText(context, R.string.download_start_error, Toast.LENGTH_LONG).show();
+      Log.e(
+          TAG,
+          e instanceof DownloadHelper.LiveContentUnsupportedException
+              ? "Downloading live content unsupported"
+              : "Failed to start download",
+          e);
+    }
+
+    private void startDownload(String id) {
+      startDownload(buildDownloadRequest(id));
+    }
+
+    private void startDownload(DownloadRequest downloadRequest) {
+      Log.d("Offline", "start request");
+      DownloadService.sendAddDownload(
+          context, DemoDownloadService.class, downloadRequest, /* foreground= */ false);
+    }
+
+    private DownloadRequest buildDownloadRequest(String id) {
+      return downloadHelper.getDownloadRequest(id, Util.getUtf8Bytes(name));
+    }
+  }
 }
