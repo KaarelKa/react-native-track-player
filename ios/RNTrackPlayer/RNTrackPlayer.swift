@@ -1167,8 +1167,6 @@ public class RNTrackPlayer: RCTEventEmitter, AudioSessionControllerDelegate {
                     "state": state,
                     "completedDownloads": getCompletedDownloads(),
                     "activeDownloads": getActiveDownloads(),
-                    "failedDownloads": getFailedDownloads(),
-                    "canceledDownloads": getRemovingDownloads(),
                   ])
     }
 

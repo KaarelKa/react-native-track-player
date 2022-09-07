@@ -187,7 +187,6 @@ public class MusicModule extends ReactContextBaseJavaModule implements ServiceCo
         bundle.putString("state", status);
         bundle.putStringArrayList("completedDownloads", (ArrayList<String>) downloadTracker.getDownloads());
         bundle.putStringArrayList("activeDownloads", (ArrayList<String>) downloadTracker.getActiveDownloads());
-        bundle.putStringArrayList("removingDownloads", (ArrayList<String>) downloadTracker.getRemovingDownloads());
         waitForConnection(() -> binder.emit(
                 MusicEvents.DOWNLOAD_CHANGED,
                 bundle));
@@ -529,9 +528,6 @@ public class MusicModule extends ReactContextBaseJavaModule implements ServiceCo
                   headers.put(header, httpHeaders.getString(header));
                 }
             }
-
-            Log.d("Offline", id);
-            Log.d("Offline", String.valueOf(downloadUri));
             ReactContext context = getReactApplicationContext();
             RenderersFactory renderersFactory = DownloadUtil.buildRenderersFactory(context);
             downloadTracker.startDownload((String) bundleTrack.get("title"), downloadUri, id, renderersFactory,
