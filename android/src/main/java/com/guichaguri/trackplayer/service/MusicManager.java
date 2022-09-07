@@ -319,7 +319,7 @@ public class MusicManager implements OnAudioFocusChangeListener {
                             .build())
                     .setWillPauseWhenDucked(alwaysPauseOnInterruption)
                     .build();
-
+                    
             r = manager.requestAudioFocus(focus);
         } else {
             //noinspection deprecation

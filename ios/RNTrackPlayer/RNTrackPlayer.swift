@@ -52,6 +52,15 @@ func isStateActive(_ state: DownloadState) -> Bool {
     }
 }
 
+func isStateFailed(_ state: DownloadState) -> Bool {
+  switch state {
+    case .failed:
+      return true
+    default:
+      return false
+  }
+}
+
 @objc(RNTrackPlayer)
 public class RNTrackPlayer: RCTEventEmitter  {
 
@@ -801,7 +810,7 @@ public class RNTrackPlayer: RCTEventEmitter  {
     }
 
     private func getFailedDownloads() -> NSArray {
-        let filteredFailed = items.filter({ $1.state == DownloadState.failed })
+        let filteredFailed = items.filter({ isStateFailed($1.state) })
         let failedArray = NSArray(array: Array(filteredFailed.keys))
         return failedArray
     }
@@ -876,7 +885,14 @@ public class RNTrackPlayer: RCTEventEmitter  {
 
         let state = getStateString(item.state);
         sendEvent(withName: "download-changed",
-                  body: ["trackId": item.identifier, "state": state, "completedDownloads": getCompletedDownloads(), "activeDownloads": getActiveDownloads(), "failedDownloads": getFailedDownloads()])
+                  body: [
+                    "trackId": item.identifier,
+                    "state": state,
+                    "completedDownloads": getCompletedDownloads(),
+                    "activeDownloads": getActiveDownloads(),
+                    "failedDownloads": getFailedDownloads(),
+                    "canceledDownloads": getRemovingDownloads(),
+                  ])
     }
 
     private func setupObservers() {
