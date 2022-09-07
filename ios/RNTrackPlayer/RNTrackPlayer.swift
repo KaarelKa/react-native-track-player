@@ -890,8 +890,6 @@ public class RNTrackPlayer: RCTEventEmitter  {
                     "state": state,
                     "completedDownloads": getCompletedDownloads(),
                     "activeDownloads": getActiveDownloads(),
-                    "failedDownloads": getFailedDownloads(),
-                    "canceledDownloads": getRemovingDownloads(),
                   ])
     }
 
