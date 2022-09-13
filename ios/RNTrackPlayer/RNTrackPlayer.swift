@@ -1159,15 +1159,17 @@ public class RNTrackPlayer: RCTEventEmitter, AudioSessionControllerDelegate {
                                            stringURL:  item.mediaLink, path: item.path)
 
         save(items: items)
+        if item.state != DownloadState.keyLoaded {
+            let state = getStateString(item.state);
+            sendEvent(withName: "download-changed",
+                      body: [
+                        "trackId": item.identifier,
+                        "state": state,
+                        "completedDownloads": getCompletedDownloads(),
+                        "activeDownloads": getActiveDownloads(),
+                      ])
+        }
 
-        let state = getStateString(item.state);
-        sendEvent(withName: "download-changed",
-                  body: [
-                    "trackId": item.identifier,
-                    "state": state,
-                    "completedDownloads": getCompletedDownloads(),
-                    "activeDownloads": getActiveDownloads(),
-                  ])
     }
 
     private func setupObservers() {
