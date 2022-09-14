@@ -1159,7 +1159,11 @@ public class RNTrackPlayer: RCTEventEmitter, AudioSessionControllerDelegate {
                                            stringURL:  item.mediaLink, path: item.path)
 
         save(items: items)
-        if item.state != DownloadState.keyLoaded {
+
+        if item.state != DownloadState.keyLoaded &&
+           item.state != DownloadState.canceled &&
+           item.state != DownloadState.unknown &&
+           item.state != DownloadState.waiting {
             let state = getStateString(item.state);
             sendEvent(withName: "download-changed",
                       body: [
@@ -1171,7 +1175,7 @@ public class RNTrackPlayer: RCTEventEmitter, AudioSessionControllerDelegate {
         }
 
     }
-
+    
     private func setupObservers() {
         observer = VidObserver(type: .all, stateChanged: { [weak self] item in
             self?.update(item: item)
