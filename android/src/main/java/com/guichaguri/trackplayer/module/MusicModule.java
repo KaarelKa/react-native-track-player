@@ -187,6 +187,7 @@ public class MusicModule extends ReactContextBaseJavaModule implements ServiceCo
         bundle.putString("state", status);
         bundle.putStringArrayList("completedDownloads", (ArrayList<String>) downloadTracker.getDownloads());
         bundle.putStringArrayList("activeDownloads", (ArrayList<String>) downloadTracker.getActiveDownloads());
+        bundle.putStringArrayList("failedDownloads", (ArrayList<String>) downloadTracker.getFailedDownloads());
         waitForConnection(() -> binder.emit(
                 MusicEvents.DOWNLOAD_CHANGED,
                 bundle));

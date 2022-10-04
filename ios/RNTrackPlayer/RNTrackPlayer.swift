@@ -778,7 +778,7 @@ public class RNTrackPlayer: RCTEventEmitter  {
         items.removeValue(forKey: trackId as String)
         save(items: items)
         sendEvent(withName: "download-changed",
-                  body: ["completedDownloads": getCompletedDownloads(), "activeDownloads": getActiveDownloads()])
+                  body: ["completedDownloads": getCompletedDownloads(), "activeDownloads": getActiveDownloads(), "failedDownloads": getFailedDownloads()])
         resolve(NSNull())
     }
     
@@ -793,29 +793,41 @@ public class RNTrackPlayer: RCTEventEmitter  {
         }
         save(items: items)
         sendEvent(withName: "download-changed",
-                  body: ["completedDownloads": getCompletedDownloads(), "activeDownloads": getActiveDownloads()])
+                  body: ["completedDownloads": getCompletedDownloads(), "activeDownloads": getActiveDownloads(), "failedDownloads": getFailedDownloads()])
         resolve(NSNull())
     }
 
     private func getCompletedDownloads() -> NSArray {
+        if (items.isEmpty) {
+          return [];
+        }
         let filteredDownloaded = items.filter({ $1.state == DownloadState.completed })
         let downloaded = NSArray(array: Array(filteredDownloaded.keys))
         return downloaded
     }
     
     private func getActiveDownloads() -> NSArray {
+        if (items.isEmpty) {
+          return [];
+        }
         let filteredInProgress = items.filter({ isStateActive($1.state) })
         let inProgress = NSArray(array: Array(filteredInProgress.keys))
         return inProgress
     }
 
     private func getFailedDownloads() -> NSArray {
-        let filteredFailed = items.filter({ isStateFailed($1.state) })
-        let failedArray = NSArray(array: Array(filteredFailed.keys))
-        return failedArray
+      if (items.isEmpty) {
+        return [];
+      }
+      let filteredFailed = items.filter({ isStateFailed($1.state) })
+      let failedArray = NSArray(array: Array(filteredFailed.keys))
+      return failedArray
     }
 
     private func getRemovingDownloads() -> NSArray {
+        if (items.isEmpty) {
+          return [];
+        }
         let filteredCanceled = items.filter({ $1.state == DownloadState.canceled })
         let canceledArray = NSArray(array: Array(filteredCanceled.keys))
         return canceledArray
@@ -894,6 +906,7 @@ public class RNTrackPlayer: RCTEventEmitter  {
                         "state": state,
                         "completedDownloads": getCompletedDownloads(),
                         "activeDownloads": getActiveDownloads(),
+                        "failedDownloads": getFailedDownloads(),
                       ])
         }
 
