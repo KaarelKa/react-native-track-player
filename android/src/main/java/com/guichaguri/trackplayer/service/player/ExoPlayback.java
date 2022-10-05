@@ -35,333 +35,350 @@ import java.util.List;
  */
 public abstract class ExoPlayback<T extends Player> implements EventListener, MetadataOutput {
 
-    protected final Context context;
-    protected final MusicManager manager;
-    protected final T player;
+  protected final Context context;
+  protected final MusicManager manager;
+  protected final T player;
 
-    protected List<Track> queue = Collections.synchronizedList(new ArrayList<>());
+  protected List<Track> queue = Collections.synchronizedList(new ArrayList<>());
 
-    // https://github.com/google/ExoPlayer/issues/2728
-    protected int lastKnownWindow = C.INDEX_UNSET;
-    protected long lastKnownPosition = C.POSITION_UNSET;
-    protected int previousState = PlaybackStateCompat.STATE_NONE;
-    protected float volumeMultiplier = 1.0F;
-    protected boolean autoUpdateMetadata;
+  // https://github.com/google/ExoPlayer/issues/2728
+  protected int lastKnownWindow = C.INDEX_UNSET;
+  protected long lastKnownPosition = C.POSITION_UNSET;
+  protected int previousState = PlaybackStateCompat.STATE_NONE;
+  protected float volumeMultiplier = 1.0F;
+  protected boolean autoUpdateMetadata;
 
-    public ExoPlayback(Context context, MusicManager manager, T player, boolean autoUpdateMetadata) {
-        this.context = context;
-        this.manager = manager;
-        this.player = player;
-        this.autoUpdateMetadata = autoUpdateMetadata;
+  public ExoPlayback(Context context, MusicManager manager, T player, boolean autoUpdateMetadata) {
+    this.context = context;
+    this.manager = manager;
+    this.player = player;
+    this.autoUpdateMetadata = autoUpdateMetadata;
 
-        Player.MetadataComponent component = player.getMetadataComponent();
-        if(component != null) component.addMetadataOutput(this);
+    Player.MetadataComponent component = player.getMetadataComponent();
+    if (component != null)
+      component.addMetadataOutput(this);
+  }
+
+  public void initialize() {
+    player.addListener(this);
+  }
+
+  public List<Track> getQueue() {
+    return queue;
+  }
+
+  public abstract void add(Track track, int index, Promise promise);
+
+  public abstract void add(Collection<Track> tracks, int index, Promise promise);
+
+  public abstract void remove(List<Integer> indexes, Promise promise);
+
+  public abstract void removeUpcomingTracks();
+
+  public abstract void setRepeatMode(int repeatMode);
+
+  public abstract int getRepeatMode();
+
+  public void updateTrack(int index, Track track) {
+    int currentIndex = player.getCurrentWindowIndex();
+
+    queue.set(index, track);
+
+    if (currentIndex == index)
+      manager.getMetadata().updateMetadata(this, track);
+  }
+
+  public Integer getCurrentTrackIndex() {
+    int index = player.getCurrentWindowIndex();
+    return index < 0 || index >= queue.size() ? null : index;
+  }
+
+  public Track getCurrentTrack() {
+    int index = player.getCurrentWindowIndex();
+    return index < 0 || index >= queue.size() ? null : queue.get(index);
+  }
+
+  public void skip(int index, Promise promise) {
+    if (index < 0 || index >= queue.size()) {
+      promise.reject("index_out_of_bounds", "The index is out of bounds");
+      return;
     }
 
-    public void initialize() {
-        player.addListener(this);
+    lastKnownWindow = player.getCurrentWindowIndex();
+    lastKnownPosition = player.getCurrentPosition();
+
+    player.seekToDefaultPosition(index);
+    promise.resolve(null);
+  }
+
+  public void skipToPrevious(Promise promise) {
+    int prev = player.getPreviousWindowIndex();
+
+    if (prev == C.INDEX_UNSET) {
+      promise.reject("no_previous_track", "There is no previous track");
+      return;
     }
 
-    public List<Track> getQueue() {
-        return queue;
+    lastKnownWindow = player.getCurrentWindowIndex();
+    lastKnownPosition = player.getCurrentPosition();
+
+    player.seekToDefaultPosition(prev);
+    promise.resolve(null);
+  }
+
+  public void skipToNext(Promise promise) {
+    int next = player.getNextWindowIndex();
+
+    if (next == C.INDEX_UNSET) {
+      promise.reject("queue_exhausted", "There is no tracks left to play");
+      return;
     }
 
-    public abstract void add(Track track, int index, Promise promise);
+    lastKnownWindow = player.getCurrentWindowIndex();
+    lastKnownPosition = player.getCurrentPosition();
 
-    public abstract void add(Collection<Track> tracks, int index, Promise promise);
+    player.seekToDefaultPosition(next);
+    promise.resolve(null);
+  }
 
-    public abstract void remove(List<Integer> indexes, Promise promise);
+  public void play() {
+    player.setPlayWhenReady(true);
+  }
 
-    public abstract void removeUpcomingTracks();
+  public void pause() {
+    player.setPlayWhenReady(false);
+  }
 
-    public abstract void setRepeatMode(int repeatMode);
+  public void stop() {
+    lastKnownWindow = player.getCurrentWindowIndex();
+    lastKnownPosition = player.getCurrentPosition();
 
-    public abstract int getRepeatMode();
+    player.stop(false);
+    player.setPlayWhenReady(false);
+    player.seekTo(lastKnownWindow, 0);
+  }
 
-    public void updateTrack(int index, Track track) {
-        int currentIndex = player.getCurrentWindowIndex();
+  public void reset() {
+    lastKnownWindow = player.getCurrentWindowIndex();
+    lastKnownPosition = player.getCurrentPosition();
 
-        queue.set(index, track);
+    player.stop(true);
+    player.setPlayWhenReady(false);
+  }
 
-        if(currentIndex == index)
-            manager.getMetadata().updateMetadata(this, track);
+  public boolean isRemote() {
+    return false;
+  }
+
+  public boolean shouldAutoUpdateMetadata() {
+    return autoUpdateMetadata;
+  }
+
+  public long getPosition() {
+    return player.getCurrentPosition();
+  }
+
+  public long getBufferedPosition() {
+    return player.getBufferedPosition();
+  }
+
+  public long getDuration() {
+    Track current = getCurrentTrack();
+
+    if (current != null && current.duration > 0) {
+      return current.duration;
     }
 
-    public Integer getCurrentTrackIndex() {
-        int index = player.getCurrentWindowIndex();
-        return index < 0 || index >= queue.size() ? null : index;
+    long duration = player.getDuration();
+
+    return duration == C.TIME_UNSET ? 0 : duration;
+  }
+
+  public String getCurrentTrackId() {
+    Track current = getCurrentTrack();
+    if (current != null && current.originalItem != null) {
+      return current.originalItem.getString("id");
     }
 
-    public Track getCurrentTrack() {
-        int index = player.getCurrentWindowIndex();
-        return index < 0 || index >= queue.size() ? null : queue.get(index);
-    }
+    return "";
+  }
 
-    public void skip(int index, Promise promise) {
-        if(index < 0 || index >= queue.size()) {
-            promise.reject("index_out_of_bounds", "The index is out of bounds");
-            return;
-        }
+  public void seekTo(long time) {
+    lastKnownWindow = player.getCurrentWindowIndex();
+    lastKnownPosition = player.getCurrentPosition();
 
-        lastKnownWindow = player.getCurrentWindowIndex();
-        lastKnownPosition = player.getCurrentPosition();
+    player.seekTo(time);
+  }
 
-        player.seekToDefaultPosition(index);
-        promise.resolve(null);
-    }
+  public float getVolume() {
+    return getPlayerVolume() / volumeMultiplier;
+  }
 
-    public void skipToPrevious(Promise promise) {
-        int prev = player.getPreviousWindowIndex();
+  public void setVolume(float volume) {
+    setPlayerVolume(volume * volumeMultiplier);
+  }
 
-        if(prev == C.INDEX_UNSET) {
-            promise.reject("no_previous_track", "There is no previous track");
-            return;
-        }
+  public void setVolumeMultiplier(float multiplier) {
+    setPlayerVolume(getVolume() * multiplier);
+    this.volumeMultiplier = multiplier;
+  }
 
-        lastKnownWindow = player.getCurrentWindowIndex();
-        lastKnownPosition = player.getCurrentPosition();
+  public abstract float getPlayerVolume();
 
-        player.seekToDefaultPosition(prev);
-        promise.resolve(null);
-    }
+  public abstract void setPlayerVolume(float volume);
 
-    public void skipToNext(Promise promise) {
-        int next = player.getNextWindowIndex();
+  public float getRate() {
+    return player.getPlaybackParameters().speed;
+  }
 
-        if(next == C.INDEX_UNSET) {
-            promise.reject("queue_exhausted", "There is no tracks left to play");
-            return;
-        }
+  public void setRate(float rate) {
+    player.setPlaybackParameters(new PlaybackParameters(rate, player.getPlaybackParameters().pitch));
+  }
 
-        lastKnownWindow = player.getCurrentWindowIndex();
-        lastKnownPosition = player.getCurrentPosition();
-
-        player.seekToDefaultPosition(next);
-        promise.resolve(null);
-    }
-
-    public void play() {
-        player.setPlayWhenReady(true);
-    }
-
-    public void pause() {
-        player.setPlayWhenReady(false);
-    }
-
-    public void stop() {
-        lastKnownWindow = player.getCurrentWindowIndex();
-        lastKnownPosition = player.getCurrentPosition();
-
-        player.stop(false);
-        player.setPlayWhenReady(false);
-        player.seekTo(lastKnownWindow,0);
-    }
-
-    public void reset() {
-        lastKnownWindow = player.getCurrentWindowIndex();
-        lastKnownPosition = player.getCurrentPosition();
-
-        player.stop(true);
-        player.setPlayWhenReady(false);
-    }
-
-    public boolean isRemote() {
-        return false;
-    }
-
-    public boolean shouldAutoUpdateMetadata() {
-        return autoUpdateMetadata;
-    }
-
-    public long getPosition() {
-        return player.getCurrentPosition();
-    }
-
-    public long getBufferedPosition() {
-        return player.getBufferedPosition();
-    }
-
-    public long getDuration() {
-        Track current = getCurrentTrack();
-
-        if (current != null && current.duration > 0) {
-            return current.duration;
-        }
-
-        long duration = player.getDuration();
-
-        return duration == C.TIME_UNSET ? 0 : duration;
-    }
-
-    public void seekTo(long time) {
-        lastKnownWindow = player.getCurrentWindowIndex();
-        lastKnownPosition = player.getCurrentPosition();
-
-        player.seekTo(time);
-    }
-
-    public float getVolume() {
-        return getPlayerVolume() / volumeMultiplier;
-    }
-
-    public void setVolume(float volume) {
-        setPlayerVolume(volume * volumeMultiplier);
-    }
-
-    public void setVolumeMultiplier(float multiplier) {
-        setPlayerVolume(getVolume() * multiplier);
-        this.volumeMultiplier = multiplier;
-    }
-
-    public abstract float getPlayerVolume();
-
-    public abstract void setPlayerVolume(float volume);
-
-    public float getRate() {
-        return player.getPlaybackParameters().speed;
-    }
-
-    public void setRate(float rate) {
-        player.setPlaybackParameters(new PlaybackParameters(rate, player.getPlaybackParameters().pitch));
-    }
-
-    public int getState() {
-        switch(player.getPlaybackState()) {
-            case Player.STATE_BUFFERING:
-                return player.getPlayWhenReady() ? PlaybackStateCompat.STATE_BUFFERING : PlaybackStateCompat.STATE_CONNECTING;
-            case Player.STATE_ENDED:
-                return PlaybackStateCompat.STATE_STOPPED;
-            case Player.STATE_IDLE:
-                return PlaybackStateCompat.STATE_NONE;
-            case Player.STATE_READY:
-                return player.getPlayWhenReady() ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED;
-        }
+  public int getState() {
+    switch (player.getPlaybackState()) {
+      case Player.STATE_BUFFERING:
+        return player.getPlayWhenReady() ? PlaybackStateCompat.STATE_BUFFERING : PlaybackStateCompat.STATE_CONNECTING;
+      case Player.STATE_ENDED:
+        return PlaybackStateCompat.STATE_STOPPED;
+      case Player.STATE_IDLE:
         return PlaybackStateCompat.STATE_NONE;
+      case Player.STATE_READY:
+        return player.getPlayWhenReady() ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED;
+    }
+    return PlaybackStateCompat.STATE_NONE;
+  }
+
+  public void destroy() {
+    player.release();
+  }
+
+  @Override
+  public void onTimelineChanged(@NonNull Timeline timeline, int reason) {
+    Log.d(Utils.LOG, "onTimelineChanged: " + reason);
+
+    if ((reason == Player.TIMELINE_CHANGE_REASON_PREPARED || reason == Player.TIMELINE_CHANGE_REASON_DYNAMIC)
+        && !timeline.isEmpty()) {
+      onPositionDiscontinuity(Player.DISCONTINUITY_REASON_INTERNAL);
+    }
+  }
+
+  @Override
+  public void onPositionDiscontinuity(int reason) {
+    Log.d(Utils.LOG, "onPositionDiscontinuity: " + reason);
+
+    if (lastKnownWindow != player.getCurrentWindowIndex()) {
+      Integer prevIndex = lastKnownWindow == C.INDEX_UNSET ? null : lastKnownWindow;
+      Integer nextIndex = getCurrentTrackIndex();
+      Track next = nextIndex == null ? null : queue.get(nextIndex);
+
+      // Track changed because it ended
+      // We'll use its duration instead of the last known position
+      if (reason == Player.DISCONTINUITY_REASON_PERIOD_TRANSITION && lastKnownWindow != C.INDEX_UNSET) {
+        if (lastKnownWindow >= player.getCurrentTimeline().getWindowCount())
+          return;
+        long duration = player.getCurrentTimeline().getWindow(lastKnownWindow, new Window()).getDurationMs();
+        if (duration != C.TIME_UNSET)
+          lastKnownPosition = duration;
+      }
+
+      manager.onTrackUpdate(prevIndex, lastKnownPosition, nextIndex, next);
+    } else if (reason == Player.DISCONTINUITY_REASON_PERIOD_TRANSITION
+        && lastKnownWindow == player.getCurrentWindowIndex()) {
+      Integer nextIndex = getCurrentTrackIndex();
+      Track next = nextIndex == null ? null : queue.get(nextIndex);
+
+      long duration = player.getCurrentTimeline().getWindow(lastKnownWindow, new Window()).getDurationMs();
+      if (duration != C.TIME_UNSET)
+        lastKnownPosition = duration;
+
+      manager.onTrackUpdate(nextIndex, lastKnownPosition, nextIndex, next);
     }
 
-    public void destroy() {
-        player.release();
-    }
+    lastKnownWindow = player.getCurrentWindowIndex();
+    lastKnownPosition = player.getCurrentPosition();
+  }
 
-    @Override
-    public void onTimelineChanged(@NonNull Timeline timeline, int reason) {
-        Log.d(Utils.LOG, "onTimelineChanged: " + reason);
+  @Override
+  public void onTracksChanged(TrackGroupArray trackGroups, @NonNull TrackSelectionArray trackSelections) {
+    for (int i = 0; i < trackGroups.length; i++) {
+      // Loop through all track groups.
+      // As for the current implementation, there should be only one
+      TrackGroup group = trackGroups.get(i);
 
-        if((reason == Player.TIMELINE_CHANGE_REASON_PREPARED || reason == Player.TIMELINE_CHANGE_REASON_DYNAMIC) && !timeline.isEmpty()) {
-            onPositionDiscontinuity(Player.DISCONTINUITY_REASON_INTERNAL);
+      for (int f = 0; f < group.length; f++) {
+        // Loop through all formats inside the track group
+        Format format = group.getFormat(f);
+
+        // Parse the metadata if it is present
+        if (format.metadata != null) {
+          onMetadata(format.metadata);
         }
+      }
+    }
+  }
+
+  @Override
+  public void onLoadingChanged(boolean isLoading) {
+    // Buffering updates
+  }
+
+  @Override
+  public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+    int state = getState();
+    Log.d(Utils.LOG, "onPlayerStateChanged: " + state + ", " + previousState);
+
+    if (state != previousState) {
+      if (Utils.isPlaying(state) && !Utils.isPlaying(previousState)) {
+        manager.onPlay();
+      } else if (Utils.isPaused(state) && !Utils.isPaused(previousState)) {
+        manager.onPause();
+      } else if (Utils.isStopped(state) && !Utils.isStopped(previousState)) {
+        manager.onStop();
+      }
+
+      long position = getPosition();
+      String trackId = getCurrentTrackId();
+      Integer previous = getCurrentTrackIndex();
+
+      manager.onStateChange(state, position, trackId);
+
+      if (previousState != PlaybackStateCompat.STATE_CONNECTING && state == PlaybackStateCompat.STATE_STOPPED) {
+        manager.onTrackUpdate(previous, position, null, null);
+        manager.onEnd(getCurrentTrackIndex(), getPosition());
+      }
+
+      previousState = state;
+    }
+  }
+
+  @Override
+  public void onPlayerError(ExoPlaybackException error) {
+    String code;
+
+    if (error.type == ExoPlaybackException.TYPE_SOURCE) {
+      code = "playback-source";
+    } else if (error.type == ExoPlaybackException.TYPE_RENDERER) {
+      code = "playback-renderer";
+    } else {
+      code = "playback"; // Other unexpected errors related to the playback
     }
 
-    @Override
-    public void onPositionDiscontinuity(int reason) {
-        Log.d(Utils.LOG, "onPositionDiscontinuity: " + reason);
+    manager.onError(code, error.getCause().getMessage());
+  }
 
-        if(lastKnownWindow != player.getCurrentWindowIndex()) {
-            Integer prevIndex = lastKnownWindow == C.INDEX_UNSET ? null : lastKnownWindow;
-            Integer nextIndex = getCurrentTrackIndex();
-            Track next = nextIndex == null ? null : queue.get(nextIndex);
+  @Override
+  public void onPlaybackParametersChanged(@NonNull PlaybackParameters playbackParameters) {
+    // Speed or pitch changes
+  }
 
-            // Track changed because it ended
-            // We'll use its duration instead of the last known position
-            if (reason == Player.DISCONTINUITY_REASON_PERIOD_TRANSITION && lastKnownWindow != C.INDEX_UNSET) {
-                if (lastKnownWindow >= player.getCurrentTimeline().getWindowCount()) return;
-                long duration = player.getCurrentTimeline().getWindow(lastKnownWindow, new Window()).getDurationMs();
-                if(duration != C.TIME_UNSET) lastKnownPosition = duration;
-            }
+  @Override
+  public void onSeekProcessed() {
+    // Finished seeking
+  }
 
-            manager.onTrackUpdate(prevIndex, lastKnownPosition, nextIndex, next);
-        } else if (reason == Player.DISCONTINUITY_REASON_PERIOD_TRANSITION && lastKnownWindow == player.getCurrentWindowIndex()) {
-            Integer nextIndex = getCurrentTrackIndex();
-            Track next = nextIndex == null ? null : queue.get(nextIndex);
-
-            long duration = player.getCurrentTimeline().getWindow(lastKnownWindow, new Window()).getDurationMs();
-            if(duration != C.TIME_UNSET) lastKnownPosition = duration;
-
-            manager.onTrackUpdate(nextIndex, lastKnownPosition, nextIndex, next);
-        }
-
-        lastKnownWindow = player.getCurrentWindowIndex();
-        lastKnownPosition = player.getCurrentPosition();
-    }
-
-    @Override
-    public void onTracksChanged(TrackGroupArray trackGroups, @NonNull TrackSelectionArray trackSelections) {
-        for(int i = 0; i < trackGroups.length; i++) {
-            // Loop through all track groups.
-            // As for the current implementation, there should be only one
-            TrackGroup group = trackGroups.get(i);
-
-            for(int f = 0; f < group.length; f++) {
-                // Loop through all formats inside the track group
-                Format format = group.getFormat(f);
-
-                // Parse the metadata if it is present
-                if (format.metadata != null) {
-                    onMetadata(format.metadata);
-                }
-            }
-        }
-    }
-
-    @Override
-    public void onLoadingChanged(boolean isLoading) {
-        // Buffering updates
-    }
-
-    @Override
-    public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-        int state = getState();
-        Log.d(Utils.LOG, "onPlayerStateChanged: " + state + ", " + previousState);
-
-        if(state != previousState) {
-            if(Utils.isPlaying(state) && !Utils.isPlaying(previousState)) {
-                manager.onPlay();
-            } else if(Utils.isPaused(state) && !Utils.isPaused(previousState)) {
-                manager.onPause();
-            } else if(Utils.isStopped(state) && !Utils.isStopped(previousState)) {
-                manager.onStop();
-            }
-
-            manager.onStateChange(state);
-
-            if(previousState != PlaybackStateCompat.STATE_CONNECTING && state == PlaybackStateCompat.STATE_STOPPED) {
-                Integer previous = getCurrentTrackIndex();
-                long position = getPosition();
-                manager.onTrackUpdate(previous, position, null, null);
-                manager.onEnd(getCurrentTrackIndex(), getPosition());
-            }
-
-            previousState = state;
-        }
-    }
-
-    @Override
-    public void onPlayerError(ExoPlaybackException error) {
-        String code;
-
-        if(error.type == ExoPlaybackException.TYPE_SOURCE) {
-            code = "playback-source";
-        } else if(error.type == ExoPlaybackException.TYPE_RENDERER) {
-            code = "playback-renderer";
-        } else {
-            code = "playback"; // Other unexpected errors related to the playback
-        }
-
-        manager.onError(code, error.getCause().getMessage());
-    }
-
-    @Override
-    public void onPlaybackParametersChanged(@NonNull PlaybackParameters playbackParameters) {
-        // Speed or pitch changes
-    }
-
-    @Override
-    public void onSeekProcessed() {
-        // Finished seeking
-    }
-
-    @Override
-    public void onMetadata(@NonNull Metadata metadata) {
-        SourceMetadata.handleMetadata(manager, metadata);
-    }
+  @Override
+  public void onMetadata(@NonNull Metadata metadata) {
+    SourceMetadata.handleMetadata(manager, metadata);
+  }
 }
