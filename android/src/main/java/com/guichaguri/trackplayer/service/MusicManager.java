@@ -201,11 +201,13 @@ public class MusicManager implements OnAudioFocusChangeListener {
             metadata.setActive(false);
     }
 
-    public void onStateChange(int state) {
+    public void onStateChange(int state, long position, String trackId) {
         Log.d(Utils.LOG, "onStateChange");
 
         Bundle bundle = new Bundle();
         bundle.putInt("state", state);
+        bundle.putDouble("position", Utils.toSeconds(position));
+        bundle.putString("trackId", trackId);
         service.emit(MusicEvents.PLAYBACK_STATE, bundle);
 
         if (playback.shouldAutoUpdateMetadata())
