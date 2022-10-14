@@ -641,7 +641,9 @@ public class RNTrackPlayer: RCTEventEmitter  {
         sendEvent(withName: "playback-state", body: ["state": state.rawValue])
     }
 
-    func handleAudioPlayerMetadataReceived(metadata: [AVMetadataItem]) {
+    func handleAudioPlayerMetadataReceived(metadata: [AVTimedMetadataGroup]) {
+        let metadata = metadata.first?.items ?? []
+
         func getMetadataItem(forIdentifier: AVMetadataIdentifier) -> String {
             return AVMetadataItem.metadataItems(from: metadata, filteredByIdentifier: forIdentifier).first?.stringValue ?? ""
         }
