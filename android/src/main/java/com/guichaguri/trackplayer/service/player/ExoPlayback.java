@@ -271,6 +271,8 @@ public abstract class ExoPlayback<T extends Player> implements EventListener, Me
       Integer prevIndex = lastKnownWindow == C.INDEX_UNSET ? null : lastKnownWindow;
       Integer nextIndex = getCurrentTrackIndex();
       Track next = nextIndex == null ? null : queue.get(nextIndex);
+      Track previous = prevIndex == null ? null : queue.get(prevIndex);
+      String lastTrackId = previous == null ? null : previous.originalItem.getString("id");
 
       // Track changed because it ended
       // We'll use its duration instead of the last known position
@@ -282,7 +284,7 @@ public abstract class ExoPlayback<T extends Player> implements EventListener, Me
           lastKnownPosition = duration;
       }
 
-      manager.onTrackUpdate(prevIndex, lastKnownPosition, nextIndex, next);
+      manager.onTrackUpdate(prevIndex, lastKnownPosition, nextIndex, next, lastTrackId);
     } else if (reason == Player.DISCONTINUITY_REASON_PERIOD_TRANSITION
         && lastKnownWindow == player.getCurrentWindowIndex()) {
       Integer nextIndex = getCurrentTrackIndex();
@@ -292,7 +294,7 @@ public abstract class ExoPlayback<T extends Player> implements EventListener, Me
       if (duration != C.TIME_UNSET)
         lastKnownPosition = duration;
 
-      manager.onTrackUpdate(nextIndex, lastKnownPosition, nextIndex, next);
+      manager.onTrackUpdate(nextIndex, lastKnownPosition, nextIndex, next, null);
     }
 
     lastKnownWindow = player.getCurrentWindowIndex();
@@ -344,7 +346,7 @@ public abstract class ExoPlayback<T extends Player> implements EventListener, Me
       manager.onStateChange(state, position, trackId);
 
       if (previousState != PlaybackStateCompat.STATE_CONNECTING && state == PlaybackStateCompat.STATE_STOPPED) {
-        manager.onTrackUpdate(previous, position, null, null);
+        manager.onTrackUpdate(previous, position, null, null, null);
         manager.onEnd(getCurrentTrackIndex(), getPosition());
       }
 
