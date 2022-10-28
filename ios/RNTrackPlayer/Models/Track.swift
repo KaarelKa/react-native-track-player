@@ -11,7 +11,7 @@ import MediaPlayer
 import AVFoundation
 import SwiftAudioEx
 
-class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
+class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding, InitialTiming {
     func getURLAsset() -> AVURLAsset? {
         return asset;
     }
@@ -41,7 +41,7 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
     let pitchAlgorithm: String?
     var isLiveStream: Bool?
     var asset: AVURLAsset?
-    
+    var initialTime: TimeInterval = 0.0
     
     @objc var album: String?
     @objc var artwork: MPMediaItemArtwork?
@@ -66,6 +66,11 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
         self.duration = dictionary["duration"] as? Double
         self.headers = dictionary["headers"] as? [String: Any]
         self.userAgent = dictionary["userAgent"] as? String
+        self.artworkURL = MediaURL(object: dictionary["artwork"])
+        let initialTime = dictionary["iosInitialTime"] as? Double
+        if let x = initialTime {
+                  self.initialTime = x
+        }
         self.pitchAlgorithm = dictionary["pitchAlgorithm"] as? String
 
         updateMetadata(dictionary: dictionary);
@@ -114,6 +119,11 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding {
         return .stream
     }
 
+    // MARK: - InitialTiming Protocol
+    func getInitialTime() -> TimeInterval {
+        return initialTime
+    }
+    
     func getArtwork(_ handler: @escaping (UIImage?) -> Void) {
         if let artworkURL = artworkURL?.value {
             if(self.artworkURL?.isLocal ?? false){
