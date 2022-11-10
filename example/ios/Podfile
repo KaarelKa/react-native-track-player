@@ -21,7 +21,7 @@ target 'example' do
   end
   
   pod 'SwiftAudioEx', :git => 'https://github.com/KaarelKa/SwiftAudioEx', :branch => 'offline'
-  pod 'VidLoader', :git => 'https://github.com/katerynapeikova/VidLoader.git'
+  pod 'VidLoader', :git => 'https://github.com/KaarelKa/VidLoader.git'
 
   # Enables Flipper.
   #
