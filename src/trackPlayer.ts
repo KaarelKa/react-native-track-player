@@ -560,7 +560,6 @@ async function setShouldDownloadOnWifiOnly(shouldDownloadOnWifiOnly: boolean): P
 export default {
   // MARK: - General API
   setupPlayer,
-  destroy,
   registerPlaybackService,
   addEventListener,
 
