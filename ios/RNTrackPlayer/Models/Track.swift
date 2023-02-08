@@ -11,7 +11,7 @@ import MediaPlayer
 import AVFoundation
 import SwiftAudioEx
 
-class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding, InitialTiming {
+class Track: AudioItem, TimePitching, AssetOptionsProviding, InitialTiming {
     func getURLAsset() -> AVURLAsset? {
         return asset;
     }
@@ -46,7 +46,7 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding, InitialTi
     @objc var album: String?
     @objc var artwork: MPMediaItemArtwork?
     
-    private var originalObject: [String: Any]
+    private var originalObject: [String: Any] = [:]
     
     init?(dictionary: [String: Any]) {
         guard let url = MediaURL(object: dictionary["url"]) else { return nil }
