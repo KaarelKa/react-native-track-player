@@ -529,31 +529,31 @@ function download(tracks: Track | Track[]) {
   return TrackPlayer.download(tracks)
 }
 
-async function removeDownload(trackId: string): Promise<void> {
+export async function removeDownload(trackId: string): Promise<void> {
   return TrackPlayer.removeDownload(trackId)
 }
 
-async function removeDownloadStartsWith(prefix: string): Promise<void> {
+export async function removeDownloadStartsWith(prefix: string): Promise<void> {
   return TrackPlayer.removeDownloadStartsWith(prefix)
 }
 
-async function getCompletedDownloads(): Promise<string[]> {
+export async function getCompletedDownloads(): Promise<string[]> {
   return TrackPlayer.getCompletedDownloads()
 }
 
-async function getActiveDownloads(): Promise<string[]> {
+export async function getActiveDownloads(): Promise<string[]> {
   return TrackPlayer.getActiveDownloads()
 }
 
-async function getRemovingDownloads(): Promise<string[]> {
+export async function getRemovingDownloads(): Promise<string[]> {
   return TrackPlayer.getRemovingDownloads()
 }
 
-async function getFailedDownloads(): Promise<string[]> {
+export async function getFailedDownloads(): Promise<string[]> {
   return TrackPlayer.getFailedDownloads()
 }
 
-async function setShouldDownloadOnWifiOnly(shouldDownloadOnWifiOnly: boolean): Promise<void> {
+export async function setShouldDownloadOnWifiOnly(shouldDownloadOnWifiOnly: boolean): Promise<void> {
   return TrackPlayer.setDownloadOnWifiOnly(shouldDownloadOnWifiOnly)
 }
 
