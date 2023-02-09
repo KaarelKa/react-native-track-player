@@ -113,4 +113,5 @@ export enum Event {
    * See https://react-native-track-player.js.org/docs/api/events#remoteskip
    **/
   RemoteSkip = 'remote-skip',
+  DownloadChanged = 'download-changed',
 }
