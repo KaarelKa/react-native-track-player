@@ -509,7 +509,7 @@ export async function getRepeatMode(): Promise<RepeatMode> {
 export async function retry() {
   return TrackPlayer.retry();
 }
-function download(tracks: Track | Track[]) {
+export function download(tracks: Track | Track[]) {
   if (Array.isArray(tracks)) {
     tracks = [...tracks]
   } else {
