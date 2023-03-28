@@ -1,4 +1,6 @@
 buildscript {
+    ext.kotlin_version = '1.6.10'
+
     repositories {
         mavenLocal()
         mavenCentral()
@@ -6,7 +8,8 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:4.2.2'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.10"
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10'
+
     }
 }
 
@@ -56,10 +59,10 @@ dependencies {
     //noinspection GradleDynamicVersion
     implementation "com.facebook.react:react-native:+"
 
-    implementation "com.google.android.exoplayer:exoplayer-ui:${exoPlayerVersion}"
-    
+    implementation "com.google.android.exoplayer:exoplayer-ui:2.14.2"
+
     // Make sure we're using androidx
-    implementation "androidx.core:core-ktx:1.9.0"
+    implementation "androidx.core:core-ktx:1.6.0"
     implementation "androidx.localbroadcastmanager:localbroadcastmanager:1.1.0"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.3"
 }
