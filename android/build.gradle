@@ -1,35 +1,47 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'com.facebook.react'
 buildscript {
     ext.kotlin_version = '1.6.10'
-
     repositories {
-//        mavenLocal()
-        mavenCentral()
+        mavenLocal()
         google()
-        maven {
-            // As RN is not updated in jcenter anymore, we'll have to grab it from npm
-            // Make sure you have installed the react-native npm package before compiling
-            url '../node_modules/react-native/android'
-        }
+//        maven {
+//            // As RN is not updated in jcenter anymore, we'll have to grab it from npm
+//            // Make sure you have installed the react-native npm package before compiling
+//            url '../node_modules/react-native/android'
+//        }
+        mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.2.2'
+        classpath 'com.android.tools.build:gradle:7.4.2'
         classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10'
-
+        classpath 'com.facebook.react:react-native-gradle-plugin'
     }
 }
 
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
 
 def getExtOrIntegerDefault(name) {
     return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties['RNTP_' + name]).toInteger()
 }
 
+repositories {
+    mavenLocal()
+    maven {
+//        // As RN is not updated in jcenter anymore, we'll have to grab it from npm
+//        // Make sure you have installed the react-native npm package before compiling
+        url '../node_modules/react-native/android'
+    }
+    google()
+    mavenCentral()
+}
+
 android {
     compileSdkVersion 31
+    compileSdk 31
 
     defaultConfig {
-        minSdkVersion 29 // RN's minimum version
+        minSdkVersion 24 // RN's minimum version
         targetSdkVersion 31
 
         versionCode 300
@@ -42,61 +54,31 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    buildToolsVersion '33.0.2'
 }
 
-repositories {
-//    mavenLocal()
-    maven {
-        // As RN is not updated in jcenter anymore, we'll have to grab it from npm
-        // Make sure you have installed the react-native npm package before compiling
-        url '../node_modules/react-native/android'
-    }
-
-    mavenCentral()
-    google()
-}
 
 dependencies {
     implementation 'com.github.doublesymmetry:kotlinaudio:v2.0.0-rc2'
     // used when building against local maven
 //    implementation "com.github.doublesymmetry:kotlin-audio:1.2.2"
-
-    //noinspection GradleDynamicVersion
-    implementation "com.facebook.react:react-native:+"
+    implementation "com.facebook.react:react-android"
+//    implementation "com.facebook.react:hermes-android"
+//noinspection GradleDynamicVersion
+//    implementation 'com.facebook.react:react-native:0.71.0-rc.0'
 
 //    implementation "com.google.android.exoplayer:exoplayer-ui:2.14.2"
 
     def exoPlayerVersion = '2.18.3'
 
-    // ExoPlayer Core
+// ExoPlayer Core
     implementation "com.google.android.exoplayer:exoplayer:${exoPlayerVersion}"
 
-    // ExoPlayer DASH
-//    if (dash) {
-//    implementation "com.google.android.exoplayer:exoplayer-dash:${exoPlayerVersion}"
-//    } else {
-//        compileOnly "com.google.android.exoplayer:exoplayer-dash:${exoPlayerVersion}"
-//    }
-
-//     ExoPlayer HLS
-//    if (hls) {
-//    implementation "com.google.android.exoplayer:exoplayer-hls:${exoPlayerVersion}"
-//    } else {
-//        compileOnly "com.google.android.exoplayer:exoplayer-hls:${exoPlayerVersion}"
-//    }
-
-    // ExoPlayer SmoothStreaming
-//    if (smoothstreaming) {
-//    implementation "com.google.android.exoplayer:exoplayer-smoothstreaming:${exoPlayerVersion}"
-//    } else {
-//        compileOnly "com.google.android.exoplayer:exoplayer-smoothstreaming:${exoPlayerVersion}"
-//    }
-
-//    implementation "com.google.android.exoplayer:exoplayer-ui:${exoPlayerVersion}"
-
-
-    // Make sure we're using androidx
+// Make sure we're using androidx
     implementation "androidx.core:core-ktx:1.6.0"
     implementation "androidx.localbroadcastmanager:localbroadcastmanager:1.1.0"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.3"
+    implementation "androidx.media:media:1.1.0"
+    implementation "androidx.localbroadcastmanager:localbroadcastmanager:1.1.0-alpha01"
+    implementation "com.github.bumptech.glide:glide:4.7.1"
 }
