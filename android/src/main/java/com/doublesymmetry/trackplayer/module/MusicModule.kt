@@ -149,7 +149,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         }
     }
 
-    private fun readableArrayToTrackList(data: ReadableArray?): MutableList<Track> {
+    private fun readableArrayToTrackList(data: ReadableArray?): MutableList<com.doublesymmetry.trackplayer.model.Track> {
         val tracks: MutableList<Track> = mutableListOf()
         val bundleList = Arguments.toList(data)
 

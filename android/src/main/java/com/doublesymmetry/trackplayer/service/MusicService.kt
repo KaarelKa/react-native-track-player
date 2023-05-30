@@ -48,7 +48,9 @@ class MusicService : HeadlessJsTaskService() {
         private set
 
     enum class AppKilledPlaybackBehavior(val string: String) {
-        CONTINUE_PLAYBACK("continue-playback"), PAUSE_PLAYBACK("pause-playback"), STOP_PLAYBACK_AND_REMOVE_NOTIFICATION("stop-playback-and-remove-notification")
+        CONTINUE_PLAYBACK("continue-playback"), PAUSE_PLAYBACK("pause-playback"), STOP_PLAYBACK_AND_REMOVE_NOTIFICATION(
+            "stop-playback-and-remove-notification"
+        )
     }
 
     private var appKilledPlaybackBehavior = AppKilledPlaybackBehavior.CONTINUE_PLAYBACK
@@ -104,7 +106,7 @@ class MusicService : HeadlessJsTaskService() {
             true,
             true,
             playerOptions?.getBoolean(AUTO_HANDLE_INTERRUPTIONS) ?: false,
-            when(playerOptions?.getString(ANDROID_AUDIO_CONTENT_TYPE)) {
+            when (playerOptions?.getString(ANDROID_AUDIO_CONTENT_TYPE)) {
                 "music" -> AudioContentType.MUSIC
                 "speech" -> AudioContentType.SPEECH
                 "sonification" -> AudioContentType.SONIFICATION
@@ -114,7 +116,8 @@ class MusicService : HeadlessJsTaskService() {
             }
         )
 
-        val automaticallyUpdateNotificationMetadata = playerOptions?.getBoolean(AUTO_UPDATE_METADATA, true) ?: true
+        val automaticallyUpdateNotificationMetadata =
+            playerOptions?.getBoolean(AUTO_UPDATE_METADATA, true) ?: true
 
         player = QueuedAudioPlayer(this@MusicService, playerConfig, bufferConfig, cacheConfig)
         player.automaticallyUpdateNotificationMetadata = automaticallyUpdateNotificationMetadata
@@ -126,7 +129,9 @@ class MusicService : HeadlessJsTaskService() {
         latestOptions = options
         val androidOptions = options.getBundle(ANDROID_OPTIONS_KEY)
 
-        appKilledPlaybackBehavior = AppKilledPlaybackBehavior::string.find(androidOptions?.getString(APP_KILLED_PLAYBACK_BEHAVIOR_KEY)) ?: AppKilledPlaybackBehavior.CONTINUE_PLAYBACK
+        appKilledPlaybackBehavior = AppKilledPlaybackBehavior::string.find(
+            androidOptions?.getString(APP_KILLED_PLAYBACK_BEHAVIOR_KEY)
+        ) ?: AppKilledPlaybackBehavior.CONTINUE_PLAYBACK
 
         //TODO: This handles a deprecated flag. Should be removed soon.
         options.getBoolean(STOPPING_APP_PAUSES_PLAYBACK_KEY).let {
@@ -138,11 +143,17 @@ class MusicService : HeadlessJsTaskService() {
 
         ratingType = BundleUtils.getInt(options, "ratingType", RatingCompat.RATING_NONE)
 
-        player.playerOptions.alwaysPauseOnInterruption = androidOptions?.getBoolean(PAUSE_ON_INTERRUPTION_KEY) ?: false
+        player.playerOptions.alwaysPauseOnInterruption =
+            androidOptions?.getBoolean(PAUSE_ON_INTERRUPTION_KEY) ?: false
 
-        capabilities = options.getIntegerArrayList("capabilities")?.map { Capability.values()[it] } ?: emptyList()
-        notificationCapabilities = options.getIntegerArrayList("notificationCapabilities")?.map { Capability.values()[it] } ?: emptyList()
-        compactCapabilities = options.getIntegerArrayList("compactCapabilities")?.map { Capability.values()[it] } ?: emptyList()
+        capabilities = options.getIntegerArrayList("capabilities")?.map { Capability.values()[it] }
+            ?: emptyList()
+        notificationCapabilities =
+            options.getIntegerArrayList("notificationCapabilities")?.map { Capability.values()[it] }
+                ?: emptyList()
+        compactCapabilities =
+            options.getIntegerArrayList("compactCapabilities")?.map { Capability.values()[it] }
+                ?: emptyList()
 
         if (notificationCapabilities.isEmpty()) notificationCapabilities = capabilities
 
@@ -155,26 +166,34 @@ class MusicService : HeadlessJsTaskService() {
                     val pauseIcon = BundleUtils.getIconOrNull(this, options, "pauseIcon")
                     buttonsList.add(PLAY_PAUSE(playIcon = playIcon, pauseIcon = pauseIcon))
                 }
+
                 Capability.STOP -> {
                     val stopIcon = BundleUtils.getIconOrNull(this, options, "stopIcon")
                     buttonsList.add(STOP(icon = stopIcon))
                 }
+
                 Capability.SKIP_TO_NEXT -> {
                     val nextIcon = BundleUtils.getIconOrNull(this, options, "nextIcon")
                     buttonsList.add(NEXT(icon = nextIcon, isCompact = isCompact(it)))
                 }
+
                 Capability.SKIP_TO_PREVIOUS -> {
                     val previousIcon = BundleUtils.getIconOrNull(this, options, "previousIcon")
                     buttonsList.add(PREVIOUS(icon = previousIcon, isCompact = isCompact(it)))
                 }
+
                 Capability.JUMP_FORWARD -> {
-                    val forwardIcon = BundleUtils.getIcon(this, options, "forwardIcon", R.drawable.forward)
+                    val forwardIcon =
+                        BundleUtils.getIcon(this, options, "forwardIcon", R.drawable.forward)
                     buttonsList.add(FORWARD(icon = forwardIcon, isCompact = isCompact(it)))
                 }
+
                 Capability.JUMP_BACKWARD -> {
-                    val backwardIcon = BundleUtils.getIcon(this, options, "rewindIcon", R.drawable.rewind)
+                    val backwardIcon =
+                        BundleUtils.getIcon(this, options, "rewindIcon", R.drawable.rewind)
                     buttonsList.add(BACKWARD(icon = backwardIcon, isCompact = isCompact(it)))
                 }
+
                 else -> return@forEach
             }
         }
@@ -188,8 +207,10 @@ class MusicService : HeadlessJsTaskService() {
 
         val accentColor = BundleUtils.getIntOrNull(options, "color")
         val smallIcon = BundleUtils.getIconOrNull(this, options, "icon")
-        val pendingIntent = PendingIntent.getActivity(this, 0, openAppIntent, getPendingIntentFlags())
-        val notificationConfig = NotificationConfig(buttonsList, accentColor, smallIcon, pendingIntent)
+        val pendingIntent =
+            PendingIntent.getActivity(this, 0, openAppIntent, getPendingIntentFlags())
+        val notificationConfig =
+            NotificationConfig(buttonsList, accentColor, smallIcon, pendingIntent)
 
         player.notificationManager.createNotification(notificationConfig)
 
@@ -198,7 +219,12 @@ class MusicService : HeadlessJsTaskService() {
         val updateInterval = BundleUtils.getIntOrNull(options, PROGRESS_UPDATE_EVENT_INTERVAL_KEY)
         if (updateInterval != null && updateInterval > 0) {
             progressUpdateJob = scope.launch {
-                progressUpdateEventFlow(updateInterval.toLong()).collect { emit(MusicEvents.PLAYBACK_PROGRESS_UPDATED, it) }
+                progressUpdateEventFlow(updateInterval.toLong()).collect {
+                    emit(
+                        MusicEvents.PLAYBACK_PROGRESS_UPDATED,
+                        it
+                    )
+                }
             }
         }
     }
@@ -389,7 +415,8 @@ class MusicService : HeadlessJsTaskService() {
 
     @MainThread
     fun updateNotificationMetadata(title: String?, artist: String?, artwork: String?) {
-        player.notificationManager.notificationMetadata = NotificationMetadata(title, artist, artwork)
+        player.notificationManager.notificationMetadata =
+            NotificationMetadata(title, artist, artwork)
     }
 
     @MainThread
@@ -442,7 +469,11 @@ class MusicService : HeadlessJsTaskService() {
 
                 if (it == AudioPlayerState.ENDED && player.nextItem == null) {
                     emitQueueEndedEvent()
-                    emitPlaybackTrackChangedEvents(null, player.currentIndex, player.position.toSeconds())
+                    emitPlaybackTrackChangedEvents(
+                        null,
+                        player.currentIndex,
+                        player.position.toSeconds()
+                    )
                 }
             }
         }
@@ -476,6 +507,7 @@ class MusicService : HeadlessJsTaskService() {
                     is NotificationState.POSTED -> {
                         startForeground(it.notificationId, it.notification)
                     }
+
                     is NotificationState.CANCELLED -> {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -500,12 +532,14 @@ class MusicService : HeadlessJsTaskService() {
                             emit(MusicEvents.BUTTON_SET_RATING, this)
                         }
                     }
+
                     is MediaSessionCallback.SEEK -> {
                         Bundle().apply {
                             putDouble("position", it.positionMs.toSeconds())
                             emit(MusicEvents.BUTTON_SEEK_TO, this)
                         }
                     }
+
                     MediaSessionCallback.PLAY -> emit(MusicEvents.BUTTON_PLAY)
                     MediaSessionCallback.PAUSE -> emit(MusicEvents.BUTTON_PAUSE)
                     MediaSessionCallback.NEXT -> emit(MusicEvents.BUTTON_SKIP_NEXT)
@@ -513,14 +547,21 @@ class MusicService : HeadlessJsTaskService() {
                     MediaSessionCallback.STOP -> emit(MusicEvents.BUTTON_STOP)
                     MediaSessionCallback.FORWARD -> {
                         Bundle().apply {
-                            val interval = latestOptions?.getDouble(FORWARD_JUMP_INTERVAL_KEY, DEFAULT_JUMP_INTERVAL) ?: DEFAULT_JUMP_INTERVAL
+                            val interval = latestOptions?.getDouble(
+                                FORWARD_JUMP_INTERVAL_KEY,
+                                DEFAULT_JUMP_INTERVAL
+                            ) ?: DEFAULT_JUMP_INTERVAL
                             putInt("interval", interval.toInt())
                             emit(MusicEvents.BUTTON_JUMP_FORWARD, this)
                         }
                     }
+
                     MediaSessionCallback.REWIND -> {
                         Bundle().apply {
-                            val interval = latestOptions?.getDouble(BACKWARD_JUMP_INTERVAL_KEY, DEFAULT_JUMP_INTERVAL) ?: DEFAULT_JUMP_INTERVAL
+                            val interval = latestOptions?.getDouble(
+                                BACKWARD_JUMP_INTERVAL_KEY,
+                                DEFAULT_JUMP_INTERVAL
+                            ) ?: DEFAULT_JUMP_INTERVAL
                             putInt("interval", interval.toInt())
                             emit(MusicEvents.BUTTON_JUMP_BACKWARD, this)
                         }
@@ -601,6 +642,7 @@ class MusicService : HeadlessJsTaskService() {
                 player.stop()
                 player.clear()
             }
+
             else -> {}
         }
     }
@@ -627,7 +669,7 @@ class MusicService : HeadlessJsTaskService() {
 
     companion object {
         const val STATE_KEY = "state"
-        const val ERROR_KEY  = "error"
+        const val ERROR_KEY = "error"
         const val EVENT_KEY = "event"
         const val DATA_KEY = "data"
         const val TRACK_KEY = "track"
