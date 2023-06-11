@@ -758,12 +758,18 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         Log.d("Offline", "get downloads method")
         callback.resolve(Arguments.fromList(downloadTracker.downloads))
     }
-//    @ReactMethod
+
+    //    @ReactMethod
 //    public void getCompletedDownloads(final Promise callback)
 //    {
 //        Log.d("Offline", "get downloads method");
 //        callback.resolve(Arguments.fromList(downloadTracker.getDownloads()));
 //    }
+    @ReactMethod
+    fun getFailedDownloads(callback: Promise) {
+        Log.d("Offline", "get failed downloads")
+        callback.resolve(Arguments.fromList(downloadTracker.failedDownloads))
+    }
 
     @ReactMethod
     fun getActiveDownloads(callback: Promise) {
