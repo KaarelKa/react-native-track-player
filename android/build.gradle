@@ -11,6 +11,8 @@ buildscript {
 //            url '../node_modules/react-native/android'
 //        }
         mavenCentral()
+        maven { url 'https://jitpack.io' }
+
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:7.4.2'
@@ -23,6 +25,7 @@ def getExtOrIntegerDefault(name) {
 }
 
 repositories {
+    maven { url 'https://jitpack.io' }
     mavenLocal()
     maven {
 //        // As RN is not updated in jcenter anymore, we'll have to grab it from npm
@@ -48,9 +51,9 @@ android {
     }
 }
 dependencies {
-    implementation 'com.github.doublesymmetry:kotlinaudio:v2.0.0-rc2'
+    implementation 'com.github.doublesymmetry:kotlinaudio:v2.0.0-rc6'
     // used when building against local maven
-    // implementation "com.github.doublesymmetry:kotlin-audio:1.2.2"
+//     implementation "com.github.doublesymmetry:kotlin-audio:1.2.2"
 //    implementation "com.facebook.react:react-android"
 //    implementation "com.facebook.react:hermes-android"
 //noinspection GradleDynamicVersion

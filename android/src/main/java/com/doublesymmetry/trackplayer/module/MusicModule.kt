@@ -1,6 +1,7 @@
 package com.doublesymmetry.trackplayer.module
 
 import android.content.*
+import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.support.v4.media.RatingCompat
@@ -77,10 +78,14 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         val bundle = Bundle()
         bundle.putString("trackId", trackId)
         bundle.putString("state", status)
-        bundle.putStringArrayList("completedDownloads",
+        bundle.putStringArrayList(
+            "completedDownloads",
             downloadTracker.downloads as ArrayList<String>?
         )
-        bundle.putStringArrayList("activeDownloads", downloadTracker.activeDownloads as ArrayList<String>?)
+        bundle.putStringArrayList(
+            "activeDownloads",
+            downloadTracker.activeDownloads as ArrayList<String>?
+        )
 
 //        waitForConnection(() -> binder.emit(MusicEvents.DOWNLOAD_CHANGED, bundle))
     }
@@ -547,7 +552,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     fun setRepeatMode(mode: Int, callback: Promise) = scope.launch {
         if (verifyServiceBoundOrReject(callback)) return@launch
 //todo check what repeat mode is sent here
-        musicService.setRepeatMode(Player.REPEAT_MODE_ALL)
+        musicService.setRepeatMode(RepeatMode.fromOrdinal(mode))
         callback.resolve(null)
     }
 
@@ -660,15 +665,32 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         callback.resolve(Arguments.fromBundle(musicService.getPlayerStateBundle(musicService.state)))
     }
 
+    data class HeaderSet(
+        val header: String,
+        val headerSet: String
+    )
+
     @ReactMethod
     public fun download(tracks: ReadableArray) {
-//        Log.d("Offline", "download method");
-//
-//        val bundeList: List<Bundle> = Arguments.toList(tracks)
-//        bundeList.forEach {
-//            val downloadUri: Uri = Uri.parse(it.get("url"))
-//            val id: String = it.get("id")
-//        }
+        Log.d("Offline", "download method");
+//todo add nullability
+        val trackBundleList: ArrayList<*>? = Arguments.toList(tracks)
+        trackBundleList?.forEach { trackBundle ->
+            val castBundle = trackBundle as Bundle
+            val downloadUri: Uri = Uri.parse(castBundle.get("url").toString())
+            val id: String = castBundle.get("id").toString()
+            val title: String = castBundle.get("title").toString()
+            val headers = castBundle.getBundle("headers")
+            val headerSet = mutableMapOf<String, String>()
+            headers?.keySet()?.forEach {
+                //todo what to pass if no headers found?
+                headerSet[it] = headers.getString(it) ?: ""
+            }
+            val reactContext = reactApplicationContext
+            val renderersFactory = DownloadUtil.buildRenderersFactory(reactContext)
+            downloadTracker.startDownload(title, downloadUri, id, renderersFactory, headerSet)
+
+        }
     }
 //    @ReactMethod
 //    public void download(ReadableArray tracks)
@@ -732,7 +754,6 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
 //        callback.resolve(null);
 //    }
     @ReactMethod
-
     fun getCompletedDownloads(callback: Promise) {
         Log.d("Offline", "get downloads method")
         callback.resolve(Arguments.fromList(downloadTracker.downloads))

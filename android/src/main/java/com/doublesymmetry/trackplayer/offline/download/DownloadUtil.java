@@ -88,8 +88,7 @@ public class DownloadUtil {
     public static synchronized DataSource.Factory getDataSourceFactory(Context context) {
         if (dataSourceFactory == null) {
             context = context.getApplicationContext();
-            DefaultDataSource.Factory upstreamFactory = new DefaultHttpDataSource.Factory();
-//                    new DefaultDataSource(context, getHttpDataSourceFactory(context).createDataSource());
+            DefaultDataSource.Factory upstreamFactory = new DefaultDataSource.Factory(context);
             dataSourceFactory = buildReadOnlyCacheDataSource(upstreamFactory, getDownloadCache(context));
         }
         return dataSourceFactory;

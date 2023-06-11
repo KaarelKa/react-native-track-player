@@ -114,7 +114,7 @@ public class DownloadTracker {
       RenderersFactory renderersFactory, Map<String, String> httpHeaders) {
 
     Download download = downloads.get(id);
-    Log.d("Offline", "start download value of " + String.valueOf(download) + "::" + httpHeaders);
+    Log.d("Offline", "start download value of " + download + "::" + httpHeaders);
     DataSource.Factory dataSourceFactoryWithHeaders = new ResolvingDataSource.Factory(
         dataSourceFactory,
         dataSpec -> dataSpec.withRequestHeaders(httpHeaders));

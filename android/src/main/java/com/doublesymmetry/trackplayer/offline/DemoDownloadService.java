@@ -70,12 +70,11 @@ public class DemoDownloadService extends DownloadService {
     }
 
     @Override
-    protected Notification getForegroundNotification(List<Download> downloads) {
+    protected Notification getForegroundNotification(List<Download> downloads, int notMetRequirements) {
         return DownloadUtil
                 .getDownloadNotificationHelper(this)
-                .buildProgressNotification(this, R.drawable.ic_download, null, null, downloads);
+                .buildProgressNotification(this, R.drawable.ic_download, null, null, downloads, notMetRequirements);
     }
-
 
     /**
      * Creates and displays notifications for downloads when they complete or fail.
