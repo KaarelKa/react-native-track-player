@@ -28,9 +28,7 @@ import com.google.android.exoplayer2.offline.Download;
 import com.google.android.exoplayer2.offline.DownloadManager;
 import com.google.android.exoplayer2.offline.DownloadService;
 import com.google.android.exoplayer2.scheduler.PlatformScheduler;
-import com.google.android.exoplayer2.scheduler.Requirements;
 import com.google.android.exoplayer2.ui.DownloadNotificationHelper;
-import com.google.android.exoplayer2.util.NotificationUtil;
 import com.google.android.exoplayer2.util.Util;
 
 import java.util.List;
@@ -72,10 +70,10 @@ public class DemoDownloadService extends DownloadService {
     }
 
     @Override
-    protected Notification getForegroundNotification(List<Download> downloads, int notMetRequirements) {
+    protected Notification getForegroundNotification(List<Download> downloads) {
         return DownloadUtil
                 .getDownloadNotificationHelper(this)
-                .buildProgressNotification(this,R.drawable.ic_download,null,null,downloads, Requirements.NETWORK);
+                .buildProgressNotification(this, R.drawable.ic_download, null, null, downloads);
     }
 
 

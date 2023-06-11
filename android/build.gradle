@@ -66,10 +66,10 @@ dependencies {
 //    implementation "com.facebook.react:hermes-android"
 //noinspection GradleDynamicVersion
 
-    implementation "com.google.android.exoplayer:exoplayer-ui:2.14.2"
+    def exoPlayerVersion = '2.14.2'
+    implementation "com.google.android.exoplayer:exoplayer-ui:${exoPlayerVersion}"
     implementation "com.facebook.react:react-native:+"
 
-    def exoPlayerVersion = '2.18.3'
 
 // ExoPlayer Core
     implementation "com.google.android.exoplayer:exoplayer:${exoPlayerVersion}"
