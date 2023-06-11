@@ -1,8 +1,6 @@
 package com.doublesymmetry.trackplayer.module
 
 import android.content.*
-import android.hardware.camera2.params.Capability
-import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.support.v4.media.RatingCompat
@@ -20,14 +18,11 @@ import com.doublesymmetry.trackplayer.utils.RejectionException
 import com.facebook.react.bridge.*
 import com.google.android.exoplayer2.DefaultLoadControl.*
 import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.RenderersFactory;
-import com.google.android.exoplayer2.extractor.mp4.Track
 import com.google.android.exoplayer2.offline.DownloadService;
 import com.doublesymmetry.trackplayer.offline.DownloadTracker;
 import com.doublesymmetry.trackplayer.offline.DownloadUtil;
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.util.*
 import javax.annotation.Nonnull
 
@@ -53,7 +48,6 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     }
 
     override fun initialize() {
-        Timber.plant(Timber.DebugTree())
         downloadTracker = DownloadUtil.getDownloadTracker(context);
 
         try {
@@ -81,8 +75,8 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
 
     override fun onDownloadsChanged(trackId: String?, status: String?) {
         val bundle = Bundle()
-        bundle.putString("trackId", trackId);
-        bundle.putString("state", status);
+        bundle.putString("trackId", trackId)
+        bundle.putString("state", status)
         bundle.putStringArrayList("completedDownloads",
             downloadTracker.downloads as ArrayList<String>?
         )
@@ -552,8 +546,8 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     @ReactMethod
     fun setRepeatMode(mode: Int, callback: Promise) = scope.launch {
         if (verifyServiceBoundOrReject(callback)) return@launch
-
-        musicService.setRepeatMode(RepeatMode.fromOrdinal(mode))
+//todo check what repeat mode is sent here
+        musicService.setRepeatMode(Player.REPEAT_MODE_ALL)
         callback.resolve(null)
     }
 
@@ -741,7 +735,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
 
     fun getCompletedDownloads(callback: Promise) {
         Log.d("Offline", "get downloads method")
-        callback.resolve(Arguments.fromList(downloadTracker.getDownloads()))
+        callback.resolve(Arguments.fromList(downloadTracker.downloads))
     }
 //    @ReactMethod
 //    public void getCompletedDownloads(final Promise callback)
@@ -753,7 +747,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     @ReactMethod
     fun getActiveDownloads(callback: Promise) {
         Log.d("Offline", "get active method")
-        callback.resolve(Arguments.fromList(downloadTracker.getActiveDownloads()))
+        callback.resolve(Arguments.fromList(downloadTracker.activeDownloads))
     }
 //    @ReactMethod
 //    public void getActiveDownloads(final Promise callback)

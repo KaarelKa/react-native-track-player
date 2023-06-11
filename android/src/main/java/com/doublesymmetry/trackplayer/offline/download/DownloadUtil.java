@@ -2,13 +2,11 @@ package com.doublesymmetry.trackplayer.offline.download;
 
 import android.content.Context;
 
-import androidx.annotation.Nullable;
-
 import com.doublesymmetry.trackplayer.offline.DownloadTracker;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.RenderersFactory;
 import com.google.android.exoplayer2.database.DatabaseProvider;
-import com.google.android.exoplayer2.database.StandaloneDatabaseProvider;
+import com.google.android.exoplayer2.database.ExoDatabaseProvider;
 import com.google.android.exoplayer2.offline.DownloadManager;
 import com.google.android.exoplayer2.ui.DownloadNotificationHelper;
 import com.google.android.exoplayer2.upstream.DataSource;
@@ -42,18 +40,19 @@ public class DownloadUtil {
 
     private static CacheDataSource.Factory dataSourceFactory;
     private static DefaultHttpDataSource.Factory httpDataSourceFactory;
-    private static  DatabaseProvider databaseProvider;
-    private static  File downloadDirectory;
-    private static  Cache downloadCache;
-    private static  DownloadManager downloadManager;
-    private static  DownloadTracker downloadTracker;
-    private static  DownloadNotificationHelper downloadNotificationHelper;
+    private static DatabaseProvider databaseProvider;
+    private static File downloadDirectory;
+    private static Cache downloadCache;
+    private static DownloadManager downloadManager;
+    private static DownloadTracker downloadTracker;
+    private static DownloadNotificationHelper downloadNotificationHelper;
 
-    /** Returns whether extension renderers should be used. */
+    /**
+     * Returns whether extension renderers should be used.
+     */
 //    public static boolean useExtensionRenderers() {
 //        return BuildConfig.USE_DECODER_EXTENSIONS;
 //    }
-
     public static RenderersFactory buildRenderersFactory(
             Context context, boolean preferExtensionRenderer) {
         @DefaultRenderersFactory.ExtensionRendererMode
@@ -83,12 +82,14 @@ public class DownloadUtil {
         return httpDataSourceFactory;
     }
 
-    /** Returns a {@link DataSource.Factory}. */
+    /**
+     * Returns a {@link DataSource.Factory}.
+     */
     public static synchronized DataSource.Factory getDataSourceFactory(Context context) {
         if (dataSourceFactory == null) {
             context = context.getApplicationContext();
-            DefaultDataSource.Factory upstreamFactory =
-                    new DefaultDataSource.Factory(context, getHttpDataSourceFactory(context));
+            DefaultDataSource.Factory upstreamFactory = new DefaultHttpDataSource.Factory();
+//                    new DefaultDataSource(context, getHttpDataSourceFactory(context).createDataSource());
             dataSourceFactory = buildReadOnlyCacheDataSource(upstreamFactory, getDownloadCache(context));
         }
         return dataSourceFactory;
@@ -140,7 +141,7 @@ public class DownloadUtil {
 
     private static synchronized DatabaseProvider getDatabaseProvider(Context context) {
         if (databaseProvider == null) {
-            databaseProvider = new StandaloneDatabaseProvider(context);
+            databaseProvider = new ExoDatabaseProvider(context);
         }
         return databaseProvider;
     }
@@ -164,6 +165,5 @@ public class DownloadUtil {
                 .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR);
     }
 
-    private DownloadUtil() {}
 }
 
