@@ -125,6 +125,14 @@ class MusicService : HeadlessJsTaskService() {
     }
 
     @MainThread
+    fun emit(event: String?, data: Bundle? = null) {
+        val intent = Intent(EVENT_INTENT)
+        intent.putExtra(EVENT_KEY, event)
+        if (data != null) intent.putExtra(DATA_KEY, data)
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    }
+
+    @MainThread
     fun updateOptions(options: Bundle) {
         latestOptions = options
         val androidOptions = options.getBundle(ANDROID_OPTIONS_KEY)
@@ -611,14 +619,6 @@ class MusicService : HeadlessJsTaskService() {
             bundle.putString("code", "android-" + error.code)
         }
         return bundle
-    }
-
-    @MainThread
-    private fun emit(event: String?, data: Bundle? = null) {
-        val intent = Intent(EVENT_INTENT)
-        intent.putExtra(EVENT_KEY, event)
-        if (data != null) intent.putExtra(DATA_KEY, data)
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
     override fun getTaskConfig(intent: Intent?): HeadlessJsTaskConfig {

@@ -47,5 +47,6 @@ class MusicEvents(private val reactContext: ReactContext) : BroadcastReceiver() 
         const val PLAYBACK_ERROR = "playback-error"
 
         const val EVENT_INTENT = "com.doublesymmetry.trackplayer.event"
+        const val DOWNLOAD_CHANGED = "download-changed"
     }
 }

@@ -12,6 +12,7 @@ import com.doublesymmetry.kotlinaudio.models.RepeatMode
 import com.doublesymmetry.trackplayer.extensions.NumberExt.Companion.toMilliseconds
 import com.doublesymmetry.trackplayer.model.State
 import com.doublesymmetry.trackplayer.model.Track
+import com.doublesymmetry.trackplayer.module.MusicEvents
 import com.doublesymmetry.trackplayer.module.MusicEvents.Companion.EVENT_INTENT
 import com.doublesymmetry.trackplayer.service.MusicService
 import com.doublesymmetry.trackplayer.utils.BundleUtils
@@ -86,28 +87,13 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
             "activeDownloads",
             downloadTracker.activeDownloads as ArrayList<String>?
         )
+        bundle.putStringArrayList(
+          "failedDownloads",
+          downloadTracker.failedDownloads as ArrayList<String>?
+      )
 
-//        waitForConnection(() -> binder.emit(MusicEvents.DOWNLOAD_CHANGED, bundle))
+      musicService.emit(MusicEvents.DOWNLOAD_CHANGED, bundle)
     }
-//    @Override
-//    public void onDownloadsChanged(String trackId, String status)
-//    {
-//        Bundle bundle = new Bundle();
-//        bundle.putString("trackId", trackId);
-//        bundle.putString("state", status);
-//        bundle.putStringArrayList(
-//            "completedDownloads",
-//            (ArrayList<String>) downloadTracker . getDownloads ()
-//        );
-//        bundle.putStringArrayList(
-//            "activeDownloads",
-//            (ArrayList<String>) downloadTracker . getActiveDownloads ()
-//        );
-//        waitForConnection(() -> binder.emit(
-//        MusicEvents.DOWNLOAD_CHANGED,
-//        bundle));
-//    }
-
     /**
      * Called when a connection to the Service has been lost.
      */
@@ -692,35 +678,6 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
 
         }
     }
-//    @ReactMethod
-//    public void download(ReadableArray tracks)
-//    {
-//
-//        final ArrayList bundleList = Arguments.toList(tracks);
-//        for (Object o : bundleList) {
-//        final Bundle bundleTrack = (Bundle) o;
-//        final Uri downloadUri = Uri.parse((String) bundleTrack . get ("url"));
-//        final String id = (String) bundleTrack . get ("id");
-//        Bundle httpHeaders = bundleTrack . getBundle ("headers");
-//        Map<String, String> headers = new HashMap<>();
-//        if (httpHeaders != null) {
-//            for (String header : httpHeaders.keySet()) {
-//                headers.put(header, httpHeaders.getString(header));
-//            }
-//        }
-//
-//        Log.d("Offline", id);
-//        Log.d("Offline", String.valueOf(downloadUri));
-//        ReactContext context = getReactApplicationContext ();
-//        RenderersFactory renderersFactory = DownloadUtil . buildRenderersFactory (context);
-//        downloadTracker.startDownload(
-//            (String) bundleTrack . get ("title"), downloadUri, id, renderersFactory,
-//            headers
-//        );
-//    }
-//        // final Bundle bundleTrack = (Bundle) bundleList.get(0);
-//
-//    }
 
     @ReactMethod
     fun removeDownload(trackId: String, callback: Promise) {
@@ -730,14 +687,6 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         callback.resolve(null)
     }
 
-//    @ReactMethod
-//    public void removeDownload(String trackId, final Promise callback)
-//    {
-//        Log.d("Offline", "remove download method");
-//        // TODO: make method async
-//        downloadTracker.removeDownload(trackId);
-//        callback.resolve(null);
-//    }
 
     @ReactMethod
     fun removeDownloadStartsWith(prefix: String, callback: Promise) {
@@ -746,25 +695,12 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         callback.resolve(null)
     }
 
-    //    @ReactMethod
-//    public void removeDownloadStartsWith(String prefix, final Promise callback)
-//    {
-//        Log.d("Offline", "remove download prefix method");
-//        downloadTracker.removeDownloadStartsWith(prefix);
-//        callback.resolve(null);
-//    }
     @ReactMethod
     fun getCompletedDownloads(callback: Promise) {
         Log.d("Offline", "get downloads method")
         callback.resolve(Arguments.fromList(downloadTracker.downloads))
     }
 
-    //    @ReactMethod
-//    public void getCompletedDownloads(final Promise callback)
-//    {
-//        Log.d("Offline", "get downloads method");
-//        callback.resolve(Arguments.fromList(downloadTracker.getDownloads()));
-//    }
     @ReactMethod
     fun getFailedDownloads(callback: Promise) {
         Log.d("Offline", "get failed downloads")
@@ -776,27 +712,16 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         Log.d("Offline", "get active method")
         callback.resolve(Arguments.fromList(downloadTracker.activeDownloads))
     }
-//    @ReactMethod
-//    public void getActiveDownloads(final Promise callback)
-//    {
-//        Log.d("Offline", "get active method");
-//        callback.resolve(Arguments.fromList(downloadTracker.getActiveDownloads()));
-//    }
+
+    @ReactMethod
+    fun getRemovingDownloads(callback: Promise) {
+        Log.d("Offline", "get removing downloads")
+        callback.resolve(Arguments.fromList(downloadTracker.removingDownloads))
+    }
 
     @ReactMethod
     fun setDownloadOnWifiOnly(shouldDownloadOnWifiOnly: Boolean, callback: Promise) {
         downloadTracker.setDownloadOnWifiOnly(shouldDownloadOnWifiOnly)
         callback.resolve(null)
     }
-
-
-//
-//    @ReactMethod
-//    public void setDownloadOnWifiOnly(final boolean shouldDownloadOnWifiOnly, final Promise callback)
-//    {
-//        downloadTracker.setDownloadOnWifiOnly(shouldDownloadOnWifiOnly);
-//        callback.resolve(null);
-//    }
-
-
 }
