@@ -1,4 +1,4 @@
-package com.guichaguri.trackplayer.offline;
+package com.doublesymmetry.trackplayer.offline;
 /*
  * Copyright (C) 2017 The Android Open Source Project
  *
@@ -21,8 +21,8 @@ import android.net.Uri;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-import androidx.fragment.app.FragmentManager;
 
+import com.doublesymmetry.trackplayer.R;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.RenderersFactory;
 import com.google.android.exoplayer2.offline.Download;
@@ -39,7 +39,6 @@ import com.google.android.exoplayer2.util.Log;
 import com.google.android.exoplayer2.util.Util;
 import com.google.android.exoplayer2.upstream.ResolvingDataSource;
 import com.google.android.exoplayer2.upstream.DataSpec;
-import com.guichaguri.trackplayer.R;
 import com.google.android.exoplayer2.scheduler.Requirements;
 
 import java.io.IOException;
@@ -115,7 +114,7 @@ public class DownloadTracker {
       RenderersFactory renderersFactory, Map<String, String> httpHeaders) {
 
     Download download = downloads.get(id);
-    Log.d("Offline", "start download value of " + String.valueOf(download) + "::" + httpHeaders);
+    Log.d("Offline", "start download value of " + download + "::" + httpHeaders);
     DataSource.Factory dataSourceFactoryWithHeaders = new ResolvingDataSource.Factory(
         dataSourceFactory,
         dataSpec -> dataSpec.withRequestHeaders(httpHeaders));
@@ -250,15 +249,15 @@ public class DownloadTracker {
 
   private class DownloadManagerListener implements DownloadManager.Listener {
 
-    @Override
-    public void onDownloadChanged(DownloadManager downloadManager, Download download) {
-      downloads.put(download.request.id, download);
-      String status = getStatusString(download);
-      for (Listener listener : listeners) {
-        // String status = download.state == Download.STATE_COMPLETED ? "completed" : "unknown";
-        listener.onDownloadsChanged(download.request.id, status);
-      }
-    }
+   @Override
+   public void onDownloadChanged(DownloadManager downloadManager, Download download, @Nullable Exception finalException) {
+     downloads.put(download.request.id, download);
+     String status = getStatusString(download);
+     for (Listener listener : listeners) {
+       // String status = download.state == Download.STATE_COMPLETED ? "completed" : "unknown";
+       listener.onDownloadsChanged(download.request.id, status);
+     }
+   }
 
     @Override
     public void onDownloadRemoved(DownloadManager downloadManager, Download download) {

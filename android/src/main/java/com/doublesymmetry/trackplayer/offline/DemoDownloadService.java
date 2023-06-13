@@ -1,4 +1,4 @@
-package com.guichaguri.trackplayer.offline;
+package com.doublesymmetry.trackplayer.offline;
 
 /*
  * Copyright (C) 2017 The Android Open Source Project
@@ -16,20 +16,20 @@ package com.guichaguri.trackplayer.offline;
  * limitations under the License.
  */
 
-import static com.guichaguri.trackplayer.offline.DownloadUtil.DOWNLOAD_NOTIFICATION_CHANNEL_ID;
+import static com.doublesymmetry.trackplayer.offline.DownloadUtil.DOWNLOAD_NOTIFICATION_CHANNEL_ID;
 
 import android.app.Notification;
 import android.content.Context;
 
+import androidx.annotation.Nullable;
+
+import com.doublesymmetry.trackplayer.R;
 import com.google.android.exoplayer2.offline.Download;
 import com.google.android.exoplayer2.offline.DownloadManager;
 import com.google.android.exoplayer2.offline.DownloadService;
 import com.google.android.exoplayer2.scheduler.PlatformScheduler;
 import com.google.android.exoplayer2.ui.DownloadNotificationHelper;
-import com.google.android.exoplayer2.util.NotificationUtil;
 import com.google.android.exoplayer2.util.Util;
-import com.guichaguri.trackplayer.R;
-import com.guichaguri.trackplayer.service.MusicService;
 
 import java.util.List;
 
@@ -70,11 +70,10 @@ public class DemoDownloadService extends DownloadService {
     }
 
     @Override
-    protected Notification getForegroundNotification(List<Download> downloads) {
+    protected Notification getForegroundNotification(List<Download> downloads, int notMetRequirements) {
         return DownloadUtil
                 .getDownloadNotificationHelper(this)
-                .buildProgressNotification(
-                        R.drawable.ic_download, /* contentIntent= */ null, /* message= */ null, downloads);
+                .buildProgressNotification(this, R.drawable.ic_download, null, null, downloads, notMetRequirements);
     }
 
     /**
@@ -98,17 +97,21 @@ public class DemoDownloadService extends DownloadService {
         }
 
         @Override
-        public void onDownloadChanged(DownloadManager manager, Download download) {
+        public void onDownloadChanged(DownloadManager downloadManager, Download download, @Nullable Exception finalException) {
+            DownloadManager.Listener.super.onDownloadChanged(downloadManager, download, finalException);
+
             Notification notification;
             if (download.state == Download.STATE_COMPLETED) {
                 notification =
                         notificationHelper.buildDownloadCompletedNotification(
+                                context,
                                 R.drawable.ic_download_done,
                                 /* contentIntent= */ null,
                                 Util.fromUtf8Bytes(download.request.data));
             } else if (download.state == Download.STATE_FAILED) {
                 notification =
                         notificationHelper.buildDownloadFailedNotification(
+                                context,
                                 R.drawable.ic_download_done,
                                 /* contentIntent= */ null,
                                 Util.fromUtf8Bytes(download.request.data));
@@ -117,6 +120,7 @@ public class DemoDownloadService extends DownloadService {
             }
 //            don't show notification for each track separately
 //            NotificationUtil.setNotification(context, nextNotificationId++, notification);
+//        }
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.guichaguri.trackplayer.offline;
+package com.doublesymmetry.trackplayer.offline;
 
 
 /*
@@ -26,20 +26,21 @@ import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.RenderersFactory;
 import com.google.android.exoplayer2.database.DatabaseProvider;
 import com.google.android.exoplayer2.database.ExoDatabaseProvider;
-import com.google.android.exoplayer2.offline.ActionFileUpgradeUtil;
+//import com.google.android.exoplayer2.offline.ActionFileUpgradeUtil;
 import com.google.android.exoplayer2.offline.DefaultDownloadIndex;
 import com.google.android.exoplayer2.offline.DefaultDownloaderFactory;
 import com.google.android.exoplayer2.offline.DownloadManager;
-import com.google.android.exoplayer2.offline.DownloaderConstructorHelper;
+//import com.google.android.exoplayer2.offline.DownloaderConstructorHelper;
 import com.google.android.exoplayer2.ui.DownloadNotificationHelper;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
-import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
+//import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.upstream.FileDataSource;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.upstream.cache.Cache;
 import com.google.android.exoplayer2.upstream.cache.CacheDataSource;
-import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory;
+//import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory;
 import com.google.android.exoplayer2.upstream.cache.NoOpCacheEvictor;
 import com.google.android.exoplayer2.upstream.cache.SimpleCache;
 import com.google.android.exoplayer2.util.Log;
@@ -47,6 +48,9 @@ import com.google.android.exoplayer2.util.Util;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 
 /**
  * Placeholder application to facilitate overriding Application methods for debugging and testing.
@@ -73,7 +77,17 @@ public final class DownloadUtil {
     /**
      * Returns a {@link DataSource.Factory}.
      */
-    public static DataSource.Factory buildDataSourceFactory(Context context) {
+
+    private static CacheDataSource.Factory buildReadOnlyCacheDataSource(
+            DataSource.Factory upstreamFactory, Cache cache) {
+        return new CacheDataSource.Factory()
+                .setCache(cache)
+                .setUpstreamDataSourceFactory(upstreamFactory)
+                .setCacheWriteDataSinkFactory(null)
+                .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR);
+    }
+
+    public static CacheDataSource.Factory buildDataSourceFactory(Context context) {
         DefaultDataSourceFactory upstreamFactory =
                 new DefaultDataSourceFactory(context, buildHttpDataSourceFactory());
         return buildReadOnlyCacheDataSource(upstreamFactory, getDownloadCache(context));
@@ -83,8 +97,15 @@ public final class DownloadUtil {
      * Returns a {@link HttpDataSource.Factory}.
      */
     public static HttpDataSource.Factory buildHttpDataSourceFactory() {
-        return new DefaultHttpDataSourceFactory("rahvaraamat");
+
+        CookieManager cookieManager = new CookieManager();
+        cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER);
+        CookieHandler.setDefault(cookieManager);
+        return new DefaultHttpDataSource.Factory();
     }
+
+//        return new DefaultHttpDataSourceFactory("rahvaraamat");
+//    }
 
 
     public static RenderersFactory buildRenderersFactory(Context context) {
@@ -127,28 +148,30 @@ public final class DownloadUtil {
                     DOWNLOAD_ACTION_FILE, downloadIndex, /* addNewDownloadsAsCompleted= */ false);
             upgradeActionFile(context,
                     DOWNLOAD_TRACKER_ACTION_FILE, downloadIndex, /* addNewDownloadsAsCompleted= */ true);
-            DownloaderConstructorHelper downloaderConstructorHelper =
-                    new DownloaderConstructorHelper(getDownloadCache(context), buildHttpDataSourceFactory());
+//            DownloaderConstructorHelper downloaderConstructorHelper =
+//                    new DownloaderConstructorHelper(getDownloadCache(context), buildHttpDataSourceFactory());
             downloadManager =
                     new DownloadManager(
-                            context, downloadIndex, new DefaultDownloaderFactory(downloaderConstructorHelper));
+                            context, downloadIndex, new DefaultDownloaderFactory(buildDataSourceFactory(context)));
             downloadTracker =
                     new DownloadTracker(/* context= */ context, buildDataSourceFactory(context), downloadManager);
         }
     }
 
     private static void upgradeActionFile(Context context,
-                                          String fileName, DefaultDownloadIndex downloadIndex, boolean addNewDownloadsAsCompleted) {
-        try {
-            ActionFileUpgradeUtil.upgradeAndDelete(
-                    new File(getDownloadDirectory(context), fileName),
-                    /* downloadIdProvider= */ null,
-                    downloadIndex,
-                    /* deleteOnFailure= */ true,
-                    addNewDownloadsAsCompleted);
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to upgrade action file: " + fileName, e);
-        }
+                                          String fileName,
+                                          DefaultDownloadIndex downloadIndex,
+                                          boolean addNewDownloadsAsCompleted) {
+//        try {
+//            ActionFileUpgradeUtil.upgradeAndDelete(
+//                    new File(getDownloadDirectory(context), fileName),
+//                    /* downloadIdProvider= */ null,
+//                    downloadIndex,
+//                    /* deleteOnFailure= */ true,
+//                    addNewDownloadsAsCompleted);
+//        } catch (IOException e) {
+//            Log.e(TAG, "Failed to upgrade action file: " + fileName, e);
+//        }
     }
 
     private static DatabaseProvider getDatabaseProvider(Context context) {
@@ -169,14 +192,14 @@ public final class DownloadUtil {
         return downloadDirectory;
     }
 
-    protected static CacheDataSourceFactory buildReadOnlyCacheDataSource(
-            DataSource.Factory upstreamFactory, Cache cache) {
-        return new CacheDataSourceFactory(
-                cache,
-                upstreamFactory,
-                new FileDataSource.Factory(),
-                /* cacheWriteDataSinkFactory= */ null,
-                CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR,
-                /* eventListener= */ null);
-    }
+//    protected static CacheDataSourceFactory buildReadOnlyCacheDataSource(
+//            DataSource.Factory upstreamFactory, Cache cache) {
+//        return new CacheDataSourceFactory(
+//                cache,
+//                upstreamFactory,
+//                new FileDataSource.Factory(),
+//                /* cacheWriteDataSinkFactory= */ null,
+//                CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR,
+//                /* eventListener= */ null);
+//    }
 }
