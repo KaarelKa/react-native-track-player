@@ -1,6 +1,7 @@
 package com.doublesymmetry.trackplayer.module
 
 import android.content.*
+import android.os.Build
 import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
@@ -15,6 +16,7 @@ import com.doublesymmetry.trackplayer.model.Track
 import com.doublesymmetry.trackplayer.module.MusicEvents
 import com.doublesymmetry.trackplayer.module.MusicEvents.Companion.EVENT_INTENT
 import com.doublesymmetry.trackplayer.service.MusicService
+import com.doublesymmetry.trackplayer.utils.AppForegroundTracker
 import com.doublesymmetry.trackplayer.utils.BundleUtils
 import com.doublesymmetry.trackplayer.utils.RejectionException
 import com.facebook.react.bridge.*
@@ -25,16 +27,16 @@ import com.doublesymmetry.trackplayer.offline.DownloadTracker;
 import com.doublesymmetry.trackplayer.offline.DownloadUtil;
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.util.*
 import javax.annotation.Nonnull
-
 
 /**
  * @author Milen Pivchev @mpivchev
  */
 class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext),
     ServiceConnection, DownloadTracker.Listener {
-    private var eventHandler: MusicEvents? = null
+    // private var eventHandler: MusicEvents? = null
     private var playerOptions: Bundle? = null
     private var isServiceBound = false
     private var playerSetUpPromise: Promise? = null
@@ -43,19 +45,20 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     private lateinit var downloadTracker: DownloadTracker
     private val context = reactContext
 
-    //Hello
     @Nonnull
     override fun getName(): String {
         return "TrackPlayerModule"
     }
 
     override fun initialize() {
+        Timber.plant(Timber.DebugTree())
+        AppForegroundTracker.start()
         downloadTracker = DownloadUtil.getDownloadTracker(context);
 
         try {
-            DownloadService.start(context, DownloadService::class.java)
+          DownloadService.start(context, DownloadService::class.java)
         } catch (e: IllegalStateException) {
-            DownloadService.startForeground(context, DownloadService::class.java)
+          DownloadService.startForeground(context, DownloadService::class.java)
         }
     }
 
@@ -94,6 +97,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
 
       musicService.emit(MusicEvents.DOWNLOAD_CHANGED, bundle)
     }
+
     /**
      * Called when a connection to the Service has been lost.
      */
@@ -127,75 +131,71 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
             is RejectionException -> {
                 callback.reject(exception.code, exception)
             }
-
             else -> {
                 callback.reject("runtime_exception", exception)
             }
         }
     }
 
-    private fun readableArrayToTrackList(data: ReadableArray?): MutableList<com.doublesymmetry.trackplayer.model.Track> {
-        val tracks: MutableList<Track> = mutableListOf()
-        val bundleList = Arguments.toList(data)
 
-        if (bundleList !is ArrayList<*>) {
+    private fun readableArrayToTrackList(data: ReadableArray?): MutableList<Track> {
+        val bundleList = Arguments.toList(data)
+        if (bundleList !is ArrayList) {
             throw RejectionException("invalid_parameter", "Was not given an array of tracks")
         }
-
-        bundleList.forEach {
+        return bundleList.map {
             if (it is Bundle) {
-                tracks.add(bundleToTrack(it))
+                bundleToTrack(it)
             } else {
                 throw RejectionException(
                     "invalid_track_object",
                     "Track was not a dictionary type"
                 )
             }
-        }
-        return tracks
+        }.toMutableList()
     }
 
     /* ****************************** API ****************************** */
     override fun getConstants(): Map<String, Any> {
-        val constants: MutableMap<String, Any> = HashMap()
+        return HashMap<String, Any>().apply {
+            // Capabilities
+            this["CAPABILITY_PLAY"] = Capability.PLAY.ordinal
+            this["CAPABILITY_PLAY_FROM_ID"] = Capability.PLAY_FROM_ID.ordinal
+            this["CAPABILITY_PLAY_FROM_SEARCH"] = Capability.PLAY_FROM_SEARCH.ordinal
+            this["CAPABILITY_PAUSE"] = Capability.PAUSE.ordinal
+            this["CAPABILITY_STOP"] = Capability.STOP.ordinal
+            this["CAPABILITY_SEEK_TO"] = Capability.SEEK_TO.ordinal
+            this["CAPABILITY_SKIP"] = OnErrorAction.SKIP.ordinal
+            this["CAPABILITY_SKIP_TO_NEXT"] = Capability.SKIP_TO_NEXT.ordinal
+            this["CAPABILITY_SKIP_TO_PREVIOUS"] = Capability.SKIP_TO_PREVIOUS.ordinal
+            this["CAPABILITY_SET_RATING"] = Capability.SET_RATING.ordinal
+            this["CAPABILITY_JUMP_FORWARD"] = Capability.JUMP_FORWARD.ordinal
+            this["CAPABILITY_JUMP_BACKWARD"] = Capability.JUMP_BACKWARD.ordinal
 
-        // Capabilities
-        constants["CAPABILITY_PLAY"] = Capability.PLAY.ordinal
-        constants["CAPABILITY_PLAY_FROM_ID"] = Capability.PLAY_FROM_ID.ordinal
-        constants["CAPABILITY_PLAY_FROM_SEARCH"] = Capability.PLAY_FROM_SEARCH.ordinal
-        constants["CAPABILITY_PAUSE"] = Capability.PAUSE.ordinal
-        constants["CAPABILITY_STOP"] = Capability.STOP.ordinal
-        constants["CAPABILITY_SEEK_TO"] = Capability.SEEK_TO.ordinal
-        constants["CAPABILITY_SKIP"] = OnErrorAction.SKIP.ordinal
-        constants["CAPABILITY_SKIP_TO_NEXT"] = Capability.SKIP_TO_NEXT.ordinal
-        constants["CAPABILITY_SKIP_TO_PREVIOUS"] = Capability.SKIP_TO_PREVIOUS.ordinal
-        constants["CAPABILITY_SET_RATING"] = Capability.SET_RATING.ordinal
-        constants["CAPABILITY_JUMP_FORWARD"] = Capability.JUMP_FORWARD.ordinal
-        constants["CAPABILITY_JUMP_BACKWARD"] = Capability.JUMP_BACKWARD.ordinal
+            // States
+            this["STATE_NONE"] = State.None.state
+            this["STATE_READY"] = State.Ready.state
+            this["STATE_PLAYING"] = State.Playing.state
+            this["STATE_PAUSED"] = State.Paused.state
+            this["STATE_STOPPED"] = State.Stopped.state
+            this["STATE_BUFFERING"] = State.Buffering.state
+            this["STATE_LOADING"] = State.Loading.state
 
-        // States
-        constants["STATE_NONE"] = State.Idle.state
-        constants["STATE_READY"] = State.Ready.state
-        constants["STATE_PLAYING"] = State.Playing.state
-        constants["STATE_PAUSED"] = State.Paused.state
-        constants["STATE_STOPPED"] = State.Stopped.state
-        constants["STATE_BUFFERING"] = State.Buffering.state
-        constants["STATE_LOADING"] = State.Loading.state
+            // Rating Types
+            this["RATING_HEART"] = RatingCompat.RATING_HEART
+            this["RATING_THUMBS_UP_DOWN"] = RatingCompat.RATING_THUMB_UP_DOWN
+            this["RATING_3_STARS"] = RatingCompat.RATING_3_STARS
+            this["RATING_4_STARS"] = RatingCompat.RATING_4_STARS
+            this["RATING_5_STARS"] = RatingCompat.RATING_5_STARS
+            this["RATING_PERCENTAGE"] = RatingCompat.RATING_PERCENTAGE
 
-        // Rating Types
-        constants["RATING_HEART"] = RatingCompat.RATING_HEART
-        constants["RATING_THUMBS_UP_DOWN"] = RatingCompat.RATING_THUMB_UP_DOWN
-        constants["RATING_3_STARS"] = RatingCompat.RATING_3_STARS
-        constants["RATING_4_STARS"] = RatingCompat.RATING_4_STARS
-        constants["RATING_5_STARS"] = RatingCompat.RATING_5_STARS
-        constants["RATING_PERCENTAGE"] = RatingCompat.RATING_PERCENTAGE
-
-        // Repeat Modes
-        constants["REPEAT_OFF"] = Player.REPEAT_MODE_OFF
-        constants["REPEAT_TRACK"] = Player.REPEAT_MODE_ONE
-        constants["REPEAT_QUEUE"] = Player.REPEAT_MODE_ALL
-        return constants
+            // Repeat Modes
+            this["REPEAT_OFF"] = Player.REPEAT_MODE_OFF
+            this["REPEAT_TRACK"] = Player.REPEAT_MODE_ONE
+            this["REPEAT_QUEUE"] = Player.REPEAT_MODE_ALL
+        }
     }
+    
 
     @ReactMethod
     fun setupPlayer(data: ReadableMap?, promise: Promise) {
@@ -203,6 +203,15 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
             promise.reject(
                 "player_already_initialized",
                 "The player has already been initialized via setupPlayer."
+            )
+            return
+        }
+
+        // prevent crash Fatal Exception: android.app.RemoteServiceException$ForegroundServiceDidNotStartInTimeException
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && AppForegroundTracker.backgrounded) {
+            promise.reject(
+                "android_cannot_setup_player_in_background",
+                "On Android the app must be in the foreground when setting up the player."
             )
             return
         }
@@ -257,13 +266,17 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         playerSetUpPromise = promise
         playerOptions = bundledData
 
-
-        val manager = LocalBroadcastManager.getInstance(context)
-        eventHandler = MusicEvents(context)
-        manager.registerReceiver(eventHandler!!, IntentFilter(EVENT_INTENT))
+        LocalBroadcastManager.getInstance(context).registerReceiver(
+            MusicEvents(context),
+            IntentFilter(EVENT_INTENT)
+        )
 
         Intent(context, MusicService::class.java).also { intent ->
-            context.startService(intent)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
             context.bindService(intent, this, Context.BIND_AUTO_CREATE)
         }
     }
@@ -307,6 +320,8 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
             rejectWithException(callback, exception)
         }
     }
+
+
 
     @ReactMethod
     fun load(data: ReadableMap?, callback: Promise) = scope.launch {
@@ -421,6 +436,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         callback.resolve(null)
     }
 
+  
     @ReactMethod
     fun skipToNext(initialTime: Float, callback: Promise) = scope.launch {
         if (verifyServiceBoundOrReject(callback)) return@launch
@@ -537,7 +553,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     @ReactMethod
     fun setRepeatMode(mode: Int, callback: Promise) = scope.launch {
         if (verifyServiceBoundOrReject(callback)) return@launch
-//todo check what repeat mode is sent here
+
         musicService.setRepeatMode(RepeatMode.fromOrdinal(mode))
         callback.resolve(null)
     }
@@ -659,7 +675,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     @ReactMethod
     public fun download(tracks: ReadableArray) {
         Log.d("Offline", "download method");
-//todo add nullability
+        //todo add nullability
         val trackBundleList: ArrayList<*>? = Arguments.toList(tracks)
         trackBundleList?.forEach { trackBundle ->
             val castBundle = trackBundle as Bundle
@@ -675,7 +691,6 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
             val reactContext = reactApplicationContext
             val renderersFactory = DownloadUtil.buildRenderersFactory(reactContext)
             downloadTracker.startDownload(title, downloadUri, id, renderersFactory, headerSet)
-
         }
     }
 
