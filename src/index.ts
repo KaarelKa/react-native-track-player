@@ -1,6 +1,7 @@
-import TrackPlayer from './trackPlayer'
+import * as TrackPlayer from './trackPlayer';
 
-export * from './hooks'
-export * from './interfaces'
+export * from './constants';
+export * from './hooks';
+export * from './interfaces';
 
-export default TrackPlayer
+export default TrackPlayer;

@@ -1,180 +1,288 @@
-import { Platform, AppRegistry, DeviceEventEmitter, NativeEventEmitter, NativeModules } from 'react-native'
-// @ts-ignore
-import * as resolveAssetSource from 'react-native/Libraries/Image/resolveAssetSource'
 import {
-  MetadataOptions,
-  PlayerOptions,
-  Event,
-  Track,
-  State,
-  TrackMetadataBase,
-  NowPlayingMetadata,
-  RepeatMode,
-} from './interfaces'
+  AppRegistry,
+  DeviceEventEmitter,
+  NativeEventEmitter,
+  NativeModules,
+  Platform,
+} from 'react-native';
+// @ts-expect-error because resolveAssetSource is untyped
+import { default as resolveAssetSource } from 'react-native/Libraries/Image/resolveAssetSource';
 
-const { TrackPlayerModule: TrackPlayer } = NativeModules
-const emitter = Platform.OS !== 'android' ? new NativeEventEmitter(TrackPlayer) : DeviceEventEmitter
+import { Event, RepeatMode, State } from './constants';
+import type {
+  EventPayloadByEvent,
+  NowPlayingMetadata,
+  PlaybackState,
+  PlayerOptions,
+  Progress,
+  ServiceHandler,
+  Track,
+  TrackMetadataBase,
+  UpdateOptions,
+} from './interfaces';
+
+const { TrackPlayerModule: TrackPlayer } = NativeModules;
+const emitter =
+  Platform.OS !== 'android'
+    ? new NativeEventEmitter(TrackPlayer)
+    : DeviceEventEmitter;
 
 // MARK: - Helpers
 
 function resolveImportedPath(path?: number | string) {
-  if (!path) return undefined
-  return resolveAssetSource(path) || path
+  if (!path) return undefined;
+  return resolveAssetSource(path) || path;
 }
 
 // MARK: - General API
 
 /**
  * Initializes the player with the specified options.
+ *
+ * Note that on Android this method must only be called while the app is in the
+ * foreground, otherwise it will throw an error with code
+ * `'android_cannot_setup_player_in_background'`. In this case you can wait for
+ * the app to be in the foreground and try again.
+ *
+ * @param options The options to initialize the player with.
+ * @see https://react-native-track-player.js.org/docs/api/functions/lifecycle
  */
-async function setupPlayer(options: PlayerOptions = {}): Promise<void> {
-  return TrackPlayer.setupPlayer(options || {})
+export async function setupPlayer(options: PlayerOptions = {}): Promise<void> {
+  return TrackPlayer.setupPlayer(options);
 }
 
-/**
- * Destroys the player, cleaning up its resources.
- */
-function destroy() {
-  return TrackPlayer.destroy()
-}
-
-type ServiceHandler = () => Promise<void>
 /**
  * Register the playback service. The service will run as long as the player runs.
  */
-function registerPlaybackService(factory: () => ServiceHandler) {
+export function registerPlaybackService(factory: () => ServiceHandler) {
   if (Platform.OS === 'android') {
     // Registers the headless task
-    AppRegistry.registerHeadlessTask('TrackPlayer', factory)
+    AppRegistry.registerHeadlessTask('TrackPlayer', factory);
   } else {
     // Initializes and runs the service in the next tick
-    setImmediate(factory())
+    setImmediate(factory());
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function addEventListener(event: Event, listener: (data: any) => void) {
-  return emitter.addListener(event, listener)
+export function addEventListener<T extends Event>(
+  event: T,
+  listener: EventPayloadByEvent[T] extends never
+    ? () => void
+    : (event: EventPayloadByEvent[T]) => void
+) {
+  return emitter.addListener(event, listener);
 }
 
-function isServiceRunning(): Promise<boolean> {
-  return TrackPlayer.isServiceRunning()
+/**
+ * @deprecated This method should not be used, most methods reject when service is not bound.
+ */
+export function isServiceRunning(): Promise<boolean> {
+  return TrackPlayer.isServiceRunning();
 }
 
 // MARK: - Queue API
 
 /**
  * Adds one or more tracks to the queue.
+ *
+ * @param tracks The tracks to add to the queue.
+ * @param insertBeforeIndex (Optional) The index to insert the tracks before.
+ * By default the tracks will be added to the end of the queue.
  */
-async function add(tracks: Track | Track[], insertBeforeIndex?: number): Promise<void> {
+export async function add(
+  tracks: Track[],
+  insertBeforeIndex?: number
+): Promise<number | void>;
+/**
+ * Adds a track to the queue.
+ *
+ * @param track The track to add to the queue.
+ * @param insertBeforeIndex (Optional) The index to insert the track before.
+ * By default the track will be added to the end of the queue.
+ */
+export async function add(
+  track: Track,
+  insertBeforeIndex?: number
+): Promise<number | void>;
+export async function add(
+  tracks: Track | Track[],
+  insertBeforeIndex = -1
+): Promise<number | void> {
   // Clone the array before modifying it
   if (Array.isArray(tracks)) {
-    tracks = [...tracks]
+    tracks = [...tracks];
   } else {
-    tracks = [tracks]
+    tracks = [tracks];
   }
 
-  if (tracks.length < 1) return
+  if (tracks.length < 1) return;
 
   for (let i = 0; i < tracks.length; i++) {
     // Clone the object before modifying it
-    tracks[i] = { ...tracks[i] }
+    tracks[i] = { ...tracks[i] };
 
     // Resolve the URLs
-    tracks[i].url = resolveImportedPath(tracks[i].url)
-    tracks[i].artwork = resolveImportedPath(tracks[i].artwork)
+    tracks[i].url = resolveImportedPath(tracks[i].url);
+    tracks[i].artwork = resolveImportedPath(tracks[i].artwork);
   }
 
-  // Note: we must be careful about passing nulls to non nullable parameters on Android.
-  return TrackPlayer.add(tracks, insertBeforeIndex === undefined ? -1 : insertBeforeIndex)
+  return TrackPlayer.add(tracks, insertBeforeIndex);
 }
 
 /**
- * Removes one or more tracks from the queue.
+ * Replaces the current track or loads the track as the first in the queue.
+ *
+ * @param track The track to load.
  */
-async function remove(tracks: number | number[]): Promise<void> {
-  if (!Array.isArray(tracks)) {
-    tracks = [tracks]
-  }
+export async function load(track: Track): Promise<number | void> {
+  return TrackPlayer.load(track);
+}
 
-  return TrackPlayer.remove(tracks)
+/**
+ * Move a track within the queue.
+ *
+ * @param fromIndex The index of the track to be moved.
+ * @param toIndex The index to move the track to. If the index is larger than
+ * the size of the queue, then the track is moved to the end of the queue.
+ */
+export async function move(fromIndex: number, toIndex: number): Promise<void> {
+  return TrackPlayer.move(fromIndex, toIndex);
+}
+
+/**
+ * Removes multiple tracks from the queue by their indexes.
+ *
+ * If the current track is removed, the next track will activated. If the
+ * current track was the last track in the queue, the first track will be
+ * activated.
+ *
+ * @param indexes The indexes of the tracks to be removed.
+ */
+export async function remove(indexes: number[]): Promise<void>;
+/**
+ * Removes a track from the queue by its index.
+ *
+ * If the current track is removed, the next track will activated. If the
+ * current track was the last track in the queue, the first track will be
+ * activated.
+ *
+ * @param index The index of the track to be removed.
+ */
+export async function remove(index: number): Promise<void>;
+export async function remove(indexOrIndexes: number | number[]): Promise<void> {
+  return TrackPlayer.remove(
+    Array.isArray(indexOrIndexes) ? indexOrIndexes : [indexOrIndexes]
+  );
 }
 
 /**
  * Clears any upcoming tracks from the queue.
  */
-async function removeUpcomingTracks(): Promise<void> {
-  return TrackPlayer.removeUpcomingTracks()
+export async function removeUpcomingTracks(): Promise<void> {
+  return TrackPlayer.removeUpcomingTracks();
 }
 
 /**
  * Skips to a track in the queue.
+ *
+ * @param index The index of the track to skip to.
+ * @param initialPosition (Optional) The initial position to seek to in seconds.
  */
-async function skip(trackIndex: number): Promise<void> {
-  return TrackPlayer.skip(trackIndex)
+export async function skip(index: number, initialPosition = -1): Promise<void> {
+  return TrackPlayer.skip(index, initialPosition);
 }
 
 /**
  * Skips to the next track in the queue.
+ *
+ * @param initialPosition (Optional) The initial position to seek to in seconds.
  */
-async function skipToNext(): Promise<void> {
-  return TrackPlayer.skipToNext()
+export async function skipToNext(initialPosition = -1): Promise<void> {
+  return TrackPlayer.skipToNext(initialPosition);
 }
 
 /**
  * Skips to the previous track in the queue.
+ *
+ * @param initialPosition (Optional) The initial position to seek to in seconds.
  */
-async function skipToPrevious(): Promise<void> {
-  return TrackPlayer.skipToPrevious()
+export async function skipToPrevious(initialPosition = -1): Promise<void> {
+  return TrackPlayer.skipToPrevious(initialPosition);
 }
 
 // MARK: - Control Center / Notifications API
 
 /**
  * Updates the configuration for the components.
+ *
+ * @param options The options to update.
+ * @see https://react-native-track-player.js.org/docs/api/functions/player#updateoptionsoptions
  */
-async function updateOptions(options: MetadataOptions = {}): Promise<void> {
-  options = { ...options }
+export async function updateOptions({
+  alwaysPauseOnInterruption,
+  ...options
+}: UpdateOptions = {}): Promise<void> {
+  // Handle deprecated alwaysPauseOnInterruption option:
+  if (
+    alwaysPauseOnInterruption !== undefined &&
+    !(options.android && 'alwaysPauseOnInterruption' in options.android)
+  ) {
+    if (!options.android) options.android = {};
+    options.android.alwaysPauseOnInterruption = alwaysPauseOnInterruption;
+  }
 
   // Resolve the asset for each icon
-  options.icon = resolveImportedPath(options.icon)
-  options.playIcon = resolveImportedPath(options.playIcon)
-  options.pauseIcon = resolveImportedPath(options.pauseIcon)
-  options.stopIcon = resolveImportedPath(options.stopIcon)
-  options.previousIcon = resolveImportedPath(options.previousIcon)
-  options.nextIcon = resolveImportedPath(options.nextIcon)
-  options.rewindIcon = resolveImportedPath(options.rewindIcon)
-  options.forwardIcon = resolveImportedPath(options.forwardIcon)
+  options.icon = resolveImportedPath(options.icon);
+  options.playIcon = resolveImportedPath(options.playIcon);
+  options.pauseIcon = resolveImportedPath(options.pauseIcon);
+  options.stopIcon = resolveImportedPath(options.stopIcon);
+  options.previousIcon = resolveImportedPath(options.previousIcon);
+  options.nextIcon = resolveImportedPath(options.nextIcon);
+  options.rewindIcon = resolveImportedPath(options.rewindIcon);
+  options.forwardIcon = resolveImportedPath(options.forwardIcon);
 
-  return TrackPlayer.updateOptions(options)
+  return TrackPlayer.updateOptions(options);
 }
 
 /**
  * Updates the metadata of a track in the queue. If the current track is updated,
  * the notification and the Now Playing Center will be updated accordingly.
+ *
+ * @param trackIndex The index of the track whose metadata will be updated.
+ * @param metadata The metadata to update.
  */
-async function updateMetadataForTrack(trackIndex: number, metadata: TrackMetadataBase): Promise<void> {
+export async function updateMetadataForTrack(
+  trackIndex: number,
+  metadata: TrackMetadataBase
+): Promise<void> {
   // Clone the object before modifying it
-  metadata = Object.assign({}, metadata)
+  metadata = Object.assign({}, metadata);
 
   // Resolve the artwork URL
-  metadata.artwork = resolveImportedPath(metadata.artwork)
+  metadata.artwork = resolveImportedPath(metadata.artwork);
 
-  return TrackPlayer.updateMetadataForTrack(trackIndex, metadata)
+  return TrackPlayer.updateMetadataForTrack(trackIndex, metadata);
 }
 
-function clearNowPlayingMetadata(): Promise<void> {
-  return TrackPlayer.clearNowPlayingMetadata()
+/**
+ * @deprecated Nominated for removal in the next major version. If you object
+ * to this, please describe your use-case in the following issue:
+ * https://github.com/doublesymmetry/react-native-track-player/issues/1653
+ */
+export function clearNowPlayingMetadata(): Promise<void> {
+  return TrackPlayer.clearNowPlayingMetadata();
 }
 
-function updateNowPlayingMetadata(metadata: NowPlayingMetadata): Promise<void> {
+export function updateNowPlayingMetadata(
+  metadata: NowPlayingMetadata
+): Promise<void> {
   // Clone the object before modifying it
-  metadata = Object.assign({}, metadata)
+  metadata = Object.assign({}, metadata);
 
   // Resolve the artwork URL
-  metadata.artwork = resolveImportedPath(metadata.artwork)
+  metadata.artwork = resolveImportedPath(metadata.artwork);
 
-  return TrackPlayer.updateNowPlayingMetadata(metadata)
+  return TrackPlayer.updateNowPlayingMetadata(metadata);
 }
 
 // MARK: - Player API
@@ -182,132 +290,231 @@ function updateNowPlayingMetadata(metadata: NowPlayingMetadata): Promise<void> {
 /**
  * Resets the player stopping the current track and clearing the queue.
  */
-async function reset(): Promise<void> {
-  return TrackPlayer.reset()
+export async function reset(): Promise<void> {
+  return TrackPlayer.reset();
 }
 
 /**
  * Plays or resumes the current track.
  */
-async function play(): Promise<void> {
-  return TrackPlayer.play()
+export async function play(): Promise<void> {
+  return TrackPlayer.play();
 }
 
 /**
  * Pauses the current track.
  */
-async function pause(): Promise<void> {
-  return TrackPlayer.pause()
+export async function pause(): Promise<void> {
+  return TrackPlayer.pause();
 }
 
 /**
  * Stops the current track.
  */
-async function stop(): Promise<void> {
-  return TrackPlayer.stop()
+export async function stop(): Promise<void> {
+  return TrackPlayer.stop();
+}
+
+/**
+ * Sets wether the player will play automatically when it is ready to do so.
+ * This is the equivalent of calling `TrackPlayer.play()` when `playWhenReady = true`
+ * or `TrackPlayer.pause()` when `playWhenReady = false`.
+ */
+export async function setPlayWhenReady(
+  playWhenReady: boolean
+): Promise<boolean> {
+  return TrackPlayer.setPlayWhenReady(playWhenReady);
+}
+
+/**
+ * Gets wether the player will play automatically when it is ready to do so.
+ */
+export async function getPlayWhenReady(): Promise<boolean> {
+  return TrackPlayer.getPlayWhenReady();
 }
 
 /**
  * Seeks to a specified time position in the current track.
+ *
+ * @param position The position to seek to in seconds.
  */
-async function seekTo(position: number): Promise<void> {
-  return TrackPlayer.seekTo(position)
+export async function seekTo(position: number): Promise<void> {
+  return TrackPlayer.seekTo(position);
+}
+
+/**
+ * Seeks by a relative time offset in the current track.
+ *
+ * @param offset The time offset to seek by in seconds.
+ */
+export async function seekBy(offset: number): Promise<void> {
+  return TrackPlayer.seekBy(offset);
 }
 
 /**
  * Sets the volume of the player.
+ *
+ * @param volume The volume as a number between 0 and 1.
  */
-async function setVolume(level: number): Promise<void> {
-  return TrackPlayer.setVolume(level)
+export async function setVolume(level: number): Promise<void> {
+  return TrackPlayer.setVolume(level);
 }
 
 /**
  * Sets the playback rate.
+ *
+ * @param rate The playback rate to change to, where 0.5 would be half speed,
+ * 1 would be regular speed, 2 would be double speed etc.
  */
-async function setRate(rate: number): Promise<void> {
-  return TrackPlayer.setRate(rate)
+export async function setRate(rate: number): Promise<void> {
+  return TrackPlayer.setRate(rate);
 }
 
 /**
- * Sets the repeat mode.
+ * Sets the queue.
+ *
+ * @param tracks The tracks to set as the queue.
+ * @see https://react-native-track-player.js.org/docs/api/constants/repeat-mode
  */
-async function setRepeatMode(mode: RepeatMode): Promise<RepeatMode> {
-  return TrackPlayer.setRepeatMode(mode)
+export async function setQueue(tracks: Track[]): Promise<void> {
+  return TrackPlayer.setQueue(tracks);
+}
+
+/**
+ * Sets the queue repeat mode.
+ *
+ * @param repeatMode The repeat mode to set.
+ * @see https://react-native-track-player.js.org/docs/api/constants/repeat-mode
+ */
+export async function setRepeatMode(mode: RepeatMode): Promise<RepeatMode> {
+  return TrackPlayer.setRepeatMode(mode);
 }
 
 // MARK: - Getters
 
 /**
- * Gets the volume of the player (a number between 0 and 1).
+ * Gets the volume of the player as a number between 0 and 1.
  */
-async function getVolume(): Promise<number> {
-  return TrackPlayer.getVolume()
+export async function getVolume(): Promise<number> {
+  return TrackPlayer.getVolume();
 }
 
 /**
- * Gets the playback rate, where 1 is the regular speed.
+ * Gets the playback rate where 0.5 would be half speed, 1 would be
+ * regular speed and 2 would be double speed etc.
  */
-async function getRate(): Promise<number> {
-  return TrackPlayer.getRate()
+export async function getRate(): Promise<number> {
+  return TrackPlayer.getRate();
 }
 
 /**
  * Gets a track object from the queue.
+ *
+ * @param index The index of the track.
+ * @returns The track object or undefined if there isn't a track object at that
+ * index.
  */
-async function getTrack(trackIndex: number): Promise<Track | null> {
-  return TrackPlayer.getTrack(trackIndex)
+export async function getTrack(index: number): Promise<Track | undefined> {
+  return TrackPlayer.getTrack(index);
 }
 
 /**
  * Gets the whole queue.
  */
-async function getQueue(): Promise<Track[]> {
-  return TrackPlayer.getQueue()
+export async function getQueue(): Promise<Track[]> {
+  return TrackPlayer.getQueue();
 }
 
 /**
- * Gets the index of the current track.
+ * Gets the index of the active track in the queue or undefined if there is no
+ * current track.
  */
-async function getCurrentTrack(): Promise<number> {
-  return TrackPlayer.getCurrentTrack()
+export async function getActiveTrackIndex(): Promise<number | undefined> {
+  return (await TrackPlayer.getActiveTrackIndex()) ?? undefined;
+}
+
+/**
+ * Gets the active track or undefined if there is no current track.
+ */
+export async function getActiveTrack(): Promise<Track | undefined> {
+  return (await TrackPlayer.getActiveTrack()) ?? undefined;
+}
+
+/**
+ * Gets the index of the current track or null if there is no current track.
+ *
+ * @deprecated use `TrackPlayer.getActiveTrackIndex()` instead.
+ */
+export async function getCurrentTrack(): Promise<number | null> {
+  return TrackPlayer.getActiveTrackIndex();
 }
 
 /**
  * Gets the duration of the current track in seconds.
+ * @deprecated Use `TrackPlayer.getProgress().then((progress) => progress.duration)` instead.
  */
-async function getDuration(): Promise<number> {
-  return TrackPlayer.getDuration()
+export async function getDuration(): Promise<number> {
+  return TrackPlayer.getDuration();
 }
 
 /**
- * Gets the buffered position of the player in seconds.
+ * Gets the buffered position of the current track in seconds.
+ *
+ * @deprecated Use `TrackPlayer.getProgress().then((progress) => progress.buffered)` instead.
  */
-async function getBufferedPosition(): Promise<number> {
-  return TrackPlayer.getBufferedPosition()
+export async function getBufferedPosition(): Promise<number> {
+  return TrackPlayer.getBufferedPosition();
 }
 
 /**
- * Gets the position of the player in seconds.
+ * Gets the playback position of the current track in seconds.
+ * @deprecated Use `TrackPlayer.getProgress().then((progress) => progress.position)` instead.
  */
-async function getPosition(): Promise<number> {
-  return TrackPlayer.getPosition()
+export async function getPosition(): Promise<number> {
+  return TrackPlayer.getPosition();
 }
 
 /**
- * Gets the state of the player.
+ * Gets information on the progress of the currently active track, including its
+ * current playback position in seconds, buffered position in seconds and
+ * duration in seconds.
  */
-async function getState(): Promise<State> {
-  return TrackPlayer.getState()
+export async function getProgress(): Promise<Progress> {
+  return TrackPlayer.getProgress();
 }
 
 /**
- * Gets the repeat mode.
+ * @deprecated use (await getPlaybackState()).state instead.
  */
-async function getRepeatMode(): Promise<RepeatMode> {
-  return TrackPlayer.getRepeatMode()
+export async function getState(): Promise<State> {
+  return (await TrackPlayer.getPlaybackState()).state;
 }
 
-function download(tracks: Track | Track[]) {
+/**
+ * Gets the playback state of the player.
+ *
+ * @see https://react-native-track-player.js.org/docs/api/constants/state
+ */
+export async function getPlaybackState(): Promise<PlaybackState> {
+  return TrackPlayer.getPlaybackState();
+}
+
+/**
+ * Gets the queue repeat mode.
+ *
+ * @see https://react-native-track-player.js.org/docs/api/constants/repeat-mode
+ */
+export async function getRepeatMode(): Promise<RepeatMode> {
+  return TrackPlayer.getRepeatMode();
+}
+
+/**
+ * Retries the current item when the playback state is `State.Error`.
+ */
+export async function retry() {
+  return TrackPlayer.retry();
+}
+export function download(tracks: Track | Track[]) {
   if (Array.isArray(tracks)) {
     tracks = [...tracks]
   } else {
@@ -327,84 +534,30 @@ function download(tracks: Track | Track[]) {
   return TrackPlayer.download(tracks)
 }
 
-async function removeDownload(trackId: string): Promise<void> {
+export async function removeDownload(trackId: string): Promise<void> {
   return TrackPlayer.removeDownload(trackId)
 }
 
-async function removeDownloadStartsWith(prefix: string): Promise<void> {
+export async function removeDownloadStartsWith(prefix: string): Promise<void> {
   return TrackPlayer.removeDownloadStartsWith(prefix)
 }
 
-async function getCompletedDownloads(): Promise<string[]> {
+export async function getCompletedDownloads(): Promise<string[]> {
   return TrackPlayer.getCompletedDownloads()
 }
 
-async function getActiveDownloads(): Promise<string[]> {
+export async function getActiveDownloads(): Promise<string[]> {
   return TrackPlayer.getActiveDownloads()
 }
 
-async function getRemovingDownloads(): Promise<string[]> {
+export async function getRemovingDownloads(): Promise<string[]> {
   return TrackPlayer.getRemovingDownloads()
 }
 
-async function getFailedDownloads(): Promise<string[]> {
+export async function getFailedDownloads(): Promise<string[]> {
   return TrackPlayer.getFailedDownloads()
 }
 
-async function setShouldDownloadOnWifiOnly(shouldDownloadOnWifiOnly: boolean): Promise<void> {
+export async function setShouldDownloadOnWifiOnly(shouldDownloadOnWifiOnly: boolean): Promise<void> {
   return TrackPlayer.setDownloadOnWifiOnly(shouldDownloadOnWifiOnly)
-}
-
-export default {
-  // MARK: - General API
-  setupPlayer,
-  destroy,
-  registerPlaybackService,
-  addEventListener,
-  isServiceRunning,
-
-  // MARK: - Queue API
-  add,
-  remove,
-  removeUpcomingTracks,
-  skip,
-  skipToNext,
-  skipToPrevious,
-
-  // MARK: - Control Center / Notifications API
-  updateOptions,
-  updateMetadataForTrack,
-  clearNowPlayingMetadata,
-  updateNowPlayingMetadata,
-
-  // MARK: - Player API
-  reset,
-  play,
-  pause,
-  stop,
-  seekTo,
-  setVolume,
-  setRate,
-  setRepeatMode,
-
-  // MARK: - Getters
-  getVolume,
-  getRate,
-  getTrack,
-  getQueue,
-  getCurrentTrack,
-  getDuration,
-  getBufferedPosition,
-  getPosition,
-  getState,
-  getRepeatMode,
-
-  download,
-  removeDownload,
-  removeDownloadStartsWith,
-  getCompletedDownloads,
-  getActiveDownloads,
-  getRemovingDownloads,
-  getFailedDownloads,
-  setShouldDownloadOnWifiOnly,
 }

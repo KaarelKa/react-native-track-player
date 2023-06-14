@@ -11,7 +11,7 @@ import MediaPlayer
 import AVFoundation
 import SwiftAudioEx
 
-class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding, InitialTiming {
+class Track: AudioItem, TimePitching, AssetOptionsProviding, InitialTiming {
     func getURLAsset() -> AVURLAsset? {
         return asset;
     }
@@ -35,9 +35,9 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding, InitialTi
     var desc: String?
     var genre: String?
     var duration: Double?
-    var skipped: Bool = false
     var artworkURL: MediaURL?
     let headers: [String: Any]?
+    var userAgent: String?
     let pitchAlgorithm: String?
     var isLiveStream: Bool?
     var asset: AVURLAsset?
@@ -46,14 +46,15 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding, InitialTi
     @objc var album: String?
     @objc var artwork: MPMediaItemArtwork?
     
-    private var originalObject: [String: Any]
+    private var originalObject: [String: Any] = [:]
     
     init?(dictionary: [String: Any]) {
+        guard let url = MediaURL(object: dictionary["url"]) else { return nil }
+        self.url = url
         guard let title = dictionary["title"] as? String,
             let artist = dictionary["artist"] as? String
             else { return nil }
         
-        self.url = MediaURL(object: dictionary["url"])
         self.title = title
         self.artist = artist
         self.id = dictionary["id"] as? String ?? ""
@@ -64,28 +65,27 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding, InitialTi
         self.desc = dictionary["description"] as? String
         self.duration = dictionary["duration"] as? Double
         self.headers = dictionary["headers"] as? [String: Any]
+        self.userAgent = dictionary["userAgent"] as? String
         self.artworkURL = MediaURL(object: dictionary["artwork"])
         let initialTime = dictionary["iosInitialTime"] as? Double
         if let x = initialTime {
                   self.initialTime = x
         }
         self.pitchAlgorithm = dictionary["pitchAlgorithm"] as? String
-        self.isLiveStream = dictionary["isLiveStream"] as? Bool
-        
-        self.originalObject = dictionary
+
+        updateMetadata(dictionary: dictionary);
     }
-    
-    
+
+
     // MARK: - Public Interface
-    
+
     func toObject() -> [String: Any] {
         return originalObject
     }
-    
+
     func updateMetadata(dictionary: [String: Any]) {
         self.title = (dictionary["title"] as? String) ?? self.title
         self.artist = (dictionary["artist"] as? String) ?? self.artist
-        
         self.date = dictionary["date"] as? String
         self.album = dictionary["album"] as? String
         self.genre = dictionary["genre"] as? String
@@ -93,28 +93,28 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding, InitialTi
         self.duration = dictionary["duration"] as? Double
         self.artworkURL = MediaURL(object: dictionary["artwork"])
         self.isLiveStream = dictionary["isLiveStream"] as? Bool
-        
+
         self.originalObject = self.originalObject.merging(dictionary) { (_, new) in new }
     }
-    
+
     // MARK: - AudioItem Protocol
-    
+
     func getSourceUrl() -> String {
         return ""
     }
-    
+
     func getArtist() -> String? {
         return artist
     }
-    
+
     func getTitle() -> String? {
         return title
     }
-    
+
     func getAlbumTitle() -> String? {
         return album
     }
-    
+
     func getSourceType() -> SourceType {
         return .stream
     }
@@ -133,19 +133,19 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding, InitialTi
                 URLSession.shared.dataTask(with: artworkURL, completionHandler: { (data, _, error) in
                     if let data = data, let artwork = UIImage(data: data), error == nil {
                         handler(artwork)
+                    } else {
+                        handler(nil)
                     }
-                    
-                    handler(nil)
                 }).resume()
             }
+        } else {
+            handler(nil)
         }
-        
-        handler(nil)
     }
 
     
     // MARK: - TimePitching Protocol
-    
+
     func getPitchAlgorithmType() -> AVAudioTimePitchAlgorithm {
         if let pitchAlgorithm = pitchAlgorithm {
             switch pitchAlgorithm {
@@ -159,18 +159,25 @@ class Track: NSObject, AudioItem, TimePitching, AssetOptionsProviding, InitialTi
                 return .lowQualityZeroLatency
             }
         }
-        
+
         return .lowQualityZeroLatency
     }
-    
+
     // MARK: - Authorizing Protocol
-    
+
     func getAssetOptions() -> [String: Any] {
+        var options: [String: Any] = [:]
         if let headers = headers {
-            return ["AVURLAssetHTTPHeaderFieldsKey": headers]
+            options["AVURLAssetHTTPHeaderFieldsKey"] = headers
         }
-        
-        return [:]
+        if #available(iOS 16, *) {
+            if let userAgent = userAgent {
+                // there is now an official, working way to set the user-agent for every request
+                // https://developer.apple.com/documentation/avfoundation/avurlassethttpuseragentkey
+                options[AVURLAssetHTTPUserAgentKey] = userAgent
+            }
+        }
+        return options
     }
-    
+
 }
