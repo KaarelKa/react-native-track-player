@@ -13,9 +13,9 @@ import androidx.annotation.MainThread
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.PRIORITY_LOW
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.doublesymmetry.kotlinaudio.models.*
-import com.doublesymmetry.kotlinaudio.models.NotificationButton.*
-import com.doublesymmetry.kotlinaudio.players.QueuedAudioPlayer
+import com.doublesymmetry.trackplayer.kotlinaudio.models.*
+import com.doublesymmetry.trackplayer.kotlinaudio.models.NotificationButton.*
+import com.doublesymmetry.trackplayer.kotlinaudio.players.QueuedAudioPlayer
 import com.doublesymmetry.trackplayer.R as TrackPlayerR
 import com.doublesymmetry.trackplayer.extensions.NumberExt.Companion.toMilliseconds
 import com.doublesymmetry.trackplayer.extensions.NumberExt.Companion.toSeconds

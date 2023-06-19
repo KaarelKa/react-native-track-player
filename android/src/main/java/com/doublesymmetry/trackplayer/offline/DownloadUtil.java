@@ -26,15 +26,17 @@ import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.RenderersFactory;
 import com.google.android.exoplayer2.database.DatabaseProvider;
 import com.google.android.exoplayer2.database.ExoDatabaseProvider;
-//import com.google.android.exoplayer2.offline.ActionFileUpgradeUtil;
+// import com.google.android.exoplayer2.offline.ActionFileUpgradeUtil;
 import com.google.android.exoplayer2.offline.DefaultDownloadIndex;
 import com.google.android.exoplayer2.offline.DefaultDownloaderFactory;
 import com.google.android.exoplayer2.offline.DownloadManager;
-//import com.google.android.exoplayer2.offline.DownloaderConstructorHelper;
+import com.google.android.exoplayer2.offline.DownloadRequest;
+// import com.google.android.exoplayer2.offline.DownloaderConstructorHelper;
 import com.google.android.exoplayer2.ui.DownloadNotificationHelper;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
+import com.google.android.exoplayer2.util.Log;
 //import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.upstream.FileDataSource;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
@@ -43,6 +45,7 @@ import com.google.android.exoplayer2.upstream.cache.CacheDataSource;
 //import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory;
 import com.google.android.exoplayer2.upstream.cache.NoOpCacheEvictor;
 import com.google.android.exoplayer2.upstream.cache.SimpleCache;
+import com.google.android.exoplayer2.upstream.cache.CacheSpan;
 import com.google.android.exoplayer2.util.Log;
 import com.google.android.exoplayer2.util.Util;
 
@@ -51,6 +54,8 @@ import java.io.IOException;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Placeholder application to facilitate overriding Application methods for debugging and testing.
@@ -97,7 +102,6 @@ public final class DownloadUtil {
      * Returns a {@link HttpDataSource.Factory}.
      */
     public static HttpDataSource.Factory buildHttpDataSourceFactory() {
-
         CookieManager cookieManager = new CookieManager();
         cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER);
         CookieHandler.setDefault(cookieManager);
@@ -131,7 +135,7 @@ public final class DownloadUtil {
         return downloadTracker;
     }
 
-    protected static synchronized Cache getDownloadCache(Context context) {
+    public static synchronized Cache getDownloadCache(Context context) {
         if (downloadCache == null) {
             File downloadContentDirectory = new File(getDownloadDirectory(context), DOWNLOAD_CONTENT_DIRECTORY);
             downloadCache =
@@ -140,7 +144,6 @@ public final class DownloadUtil {
         return downloadCache;
     }
 
-
     private static synchronized void initDownloadManager(Context context) {
         if (downloadManager == null) {
             DefaultDownloadIndex downloadIndex = new DefaultDownloadIndex(getDatabaseProvider(context));
@@ -148,8 +151,8 @@ public final class DownloadUtil {
                     DOWNLOAD_ACTION_FILE, downloadIndex, /* addNewDownloadsAsCompleted= */ false);
             upgradeActionFile(context,
                     DOWNLOAD_TRACKER_ACTION_FILE, downloadIndex, /* addNewDownloadsAsCompleted= */ true);
-//            DownloaderConstructorHelper downloaderConstructorHelper =
-//                    new DownloaderConstructorHelper(getDownloadCache(context), buildHttpDataSourceFactory());
+            // DownloaderConstructorHelper downloaderConstructorHelper =
+            //         new DownloaderConstructorHelper(getDownloadCache(context), buildHttpDataSourceFactory());
             downloadManager =
                     new DownloadManager(
                             context, downloadIndex, new DefaultDownloaderFactory(buildDataSourceFactory(context)));
@@ -162,16 +165,16 @@ public final class DownloadUtil {
                                           String fileName,
                                           DefaultDownloadIndex downloadIndex,
                                           boolean addNewDownloadsAsCompleted) {
-//        try {
-//            ActionFileUpgradeUtil.upgradeAndDelete(
-//                    new File(getDownloadDirectory(context), fileName),
-//                    /* downloadIdProvider= */ null,
-//                    downloadIndex,
-//                    /* deleteOnFailure= */ true,
-//                    addNewDownloadsAsCompleted);
-//        } catch (IOException e) {
-//            Log.e(TAG, "Failed to upgrade action file: " + fileName, e);
-//        }
+      //  try {
+      //      ActionFileUpgradeUtil.upgradeAndDelete(
+      //              new File(getDownloadDirectory(context), fileName),
+      //              /* downloadIdProvider= */ null,
+      //              downloadIndex,
+      //              /* deleteOnFailure= */ true,
+      //              addNewDownloadsAsCompleted);
+      //  } catch (IOException e) {
+      //      Log.e(TAG, "Failed to upgrade action file: " + fileName, e);
+      //  }
     }
 
     private static DatabaseProvider getDatabaseProvider(Context context) {
@@ -182,7 +185,7 @@ public final class DownloadUtil {
     }
 
 
-    private static File getDownloadDirectory(Context context) {
+    public static File getDownloadDirectory(Context context) {
         if (downloadDirectory == null) {
             downloadDirectory = context.getExternalFilesDir(null);
             if (downloadDirectory == null) {

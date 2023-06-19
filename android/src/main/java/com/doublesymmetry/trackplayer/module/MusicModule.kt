@@ -8,8 +8,8 @@ import android.os.IBinder
 import android.support.v4.media.RatingCompat
 import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.doublesymmetry.kotlinaudio.models.Capability
-import com.doublesymmetry.kotlinaudio.models.RepeatMode
+import com.doublesymmetry.trackplayer.kotlinaudio.models.Capability
+import com.doublesymmetry.trackplayer.kotlinaudio.models.RepeatMode
 import com.doublesymmetry.trackplayer.extensions.NumberExt.Companion.toMilliseconds
 import com.doublesymmetry.trackplayer.model.State
 import com.doublesymmetry.trackplayer.model.Track
@@ -27,7 +27,7 @@ import com.doublesymmetry.trackplayer.offline.DownloadTracker;
 import com.doublesymmetry.trackplayer.offline.DownloadUtil;
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
-import timber.log.Timber
+// import timber.log.Timber
 import java.util.*
 import javax.annotation.Nonnull
 
@@ -51,7 +51,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     }
 
     override fun initialize() {
-        Timber.plant(Timber.DebugTree())
+        // Timber.plant(Timber.DebugTree())
         AppForegroundTracker.start()
         downloadTracker = DownloadUtil.getDownloadTracker(context);
 
@@ -79,24 +79,24 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
     }
 
     override fun onDownloadsChanged(trackId: String?, status: String?) {
-        val bundle = Bundle()
-        bundle.putString("trackId", trackId)
-        bundle.putString("state", status)
-        bundle.putStringArrayList(
-            "completedDownloads",
-            downloadTracker.downloads as ArrayList<String>?
-        )
-        bundle.putStringArrayList(
-            "activeDownloads",
-            downloadTracker.activeDownloads as ArrayList<String>?
-        )
-        bundle.putStringArrayList(
-          "failedDownloads",
-          downloadTracker.failedDownloads as ArrayList<String>?
+      val bundle = Bundle()
+      bundle.putString("trackId", trackId)
+      bundle.putString("state", status)
+      bundle.putStringArrayList(
+          "completedDownloads",
+          downloadTracker.downloads as ArrayList<String>?
       )
+      bundle.putStringArrayList(
+          "activeDownloads",
+          downloadTracker.activeDownloads as ArrayList<String>?
+      )
+      bundle.putStringArrayList(
+        "failedDownloads",
+        downloadTracker.failedDownloads as ArrayList<String>?
+    )
 
-      musicService.emit(MusicEvents.DOWNLOAD_CHANGED, bundle)
-    }
+    musicService.emit(MusicEvents.DOWNLOAD_CHANGED, bundle)
+  }
 
     /**
      * Called when a connection to the Service has been lost.

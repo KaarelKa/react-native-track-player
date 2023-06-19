@@ -3,8 +3,8 @@ package com.doublesymmetry.trackplayer.model
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
-import com.doublesymmetry.kotlinaudio.models.AudioItemOptions
-import com.doublesymmetry.kotlinaudio.models.MediaType
+import com.doublesymmetry.trackplayer.kotlinaudio.models.AudioItemOptions
+import com.doublesymmetry.trackplayer.kotlinaudio.models.MediaType
 import com.doublesymmetry.trackplayer.utils.BundleUtils
 import com.google.android.exoplayer2.upstream.RawResourceDataSource
 
@@ -26,9 +26,11 @@ class Track(context: Context, bundle: Bundle, ratingType: Int) : TrackMetadata()
         if (originalItem != null && originalItem != bundle) originalItem!!.putAll(bundle)
     }
 
-    fun toAudioItem(): TrackAudioItem {
-        return TrackAudioItem(this, type, uri.toString(), artist, title, album, artwork.toString(), duration,
-                AudioItemOptions(headers, userAgent, resourceId))
+    public fun toAudioItem(): TrackAudioItem {
+      val trackId = originalItem?.getString("id", "")
+
+      return TrackAudioItem(this, type, uri.toString(), artist, title, album, artwork.toString(), duration,
+              AudioItemOptions(headers, userAgent, resourceId), trackId)
     }
 
     init {
