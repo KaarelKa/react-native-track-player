@@ -45,8 +45,10 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import android.util.Log
 
 import com.doublesymmetry.trackplayer.offline.DownloadUtil;
+import com.google.android.exoplayer2.offline.DownloadHelper;
 
 abstract class BaseAudioPlayer
 internal constructor(
@@ -398,7 +400,7 @@ internal constructor(
 
   private fun getMediaItemFromAudioItem(audioItem: AudioItem): MediaItem {
     val downloadedItem = DownloadUtil.getDownloadTracker(context).getDownloadRequest(audioItem.trackId);
-    println("got downloadedItem" + downloadedItem != null)
+
     val mediaItem = 
       if (downloadedItem != null) {
         downloadedItem.toMediaItem().buildUpon().setTag(AudioItemHolder(audioItem)).build()
@@ -411,6 +413,9 @@ internal constructor(
   protected fun getMediaSourceFromAudioItem(audioItem: AudioItem): MediaSource {
     val factory: DataSource.Factory
     val uri = Uri.parse(audioItem.audioUrl)
+
+    val downloadedItem = DownloadUtil.getDownloadTracker(context).getDownloadRequest(audioItem.trackId);
+
     val mediaItem = getMediaItemFromAudioItem(audioItem)
 
     val userAgent =
@@ -420,7 +425,11 @@ internal constructor(
           audioItem.options!!.userAgent
         }
 
-    factory =
+    if (downloadedItem != null) {
+      factory = DownloadUtil.getDataSourceFactory(context)
+      // return createProgressiveSource(mediaItem, factory)
+    } else {
+      factory =
         when {
           audioItem.options?.resourceId != null -> {
             val raw = RawResourceDataSource(context)
@@ -442,6 +451,7 @@ internal constructor(
             enableCaching(tempFactory)
           }
         }
+    }
 
     return when (audioItem.type) {
       MediaType.DASH -> createDashSource(mediaItem, factory)
@@ -560,7 +570,7 @@ internal constructor(
   }
 
   companion object {
-    const val APPLICATION_NAME = "react-native-track-player"
+    const val APPLICATION_NAME = "rahvaraamat"
   }
 
   inner class PlayerListener : Listener {
