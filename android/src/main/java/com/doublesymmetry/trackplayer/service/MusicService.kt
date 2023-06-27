@@ -513,20 +513,30 @@ class MusicService : HeadlessJsTaskService() {
 
         scope.launch {
             event.notificationStateChange.collect {
-                when (it) {
-                    is NotificationState.POSTED -> {
-                        startForeground(it.notificationId, it.notification)
-                    }
-                    is NotificationState.CANCELLED -> {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                            stopForeground(STOP_FOREGROUND_REMOVE)
-                        } else {
-                            @Suppress("DEPRECATION")
-                            stopForeground(true)
-                        }
-                    }
-                }
-            }
+              when (it) {
+                  is NotificationState.POSTED -> {
+                      if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                      {
+                          with(androidx.core.app.NotificationManagerCompat.from(applicationContext)) {
+                              notify(it.notificationId, it.notification)
+                          }
+                      }
+                      else {
+                          startForeground(it.notificationId, it.notification)
+                      }
+                  }
+                  is NotificationState.CANCELLED -> {
+                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                          stopForeground(STOP_FOREGROUND_REMOVE)
+                      } else {
+                          @Suppress("DEPRECATION")
+                          stopForeground(true)
+                      }
+          
+                      stopSelf()
+                  }
+              }
+          }
         }
 
         scope.launch {

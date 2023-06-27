@@ -30,8 +30,8 @@ import com.doublesymmetry.trackplayer.kotlinaudio.models.NotificationState
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator
-import com.google.android.exoplayer2.ui.PlayerNotificationManager
-import com.google.android.exoplayer2.ui.PlayerNotificationManager.CustomActionReceiver
+import com.doublesymmetry.trackplayer.kotlinaudio.notification.InternalNotificationManager
+import com.doublesymmetry.trackplayer.kotlinaudio.notification.InternalNotificationManager.CustomActionReceiver
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
@@ -43,9 +43,9 @@ internal constructor(
     private val mediaSessionConnector: MediaSessionConnector,
     val event: NotificationEventHolder,
     val playerEventHolder: PlayerEventHolder
-) : PlayerNotificationManager.NotificationListener {
-  private lateinit var descriptionAdapter: PlayerNotificationManager.MediaDescriptionAdapter
-  private var internalNotificationManager: PlayerNotificationManager? = null
+) : InternalNotificationManager.NotificationListener {
+  private lateinit var descriptionAdapter: InternalNotificationManager.MediaDescriptionAdapter
+  private var internalNotificationManager: InternalNotificationManager? = null
   private val scope = MainScope()
   private val buttons = mutableSetOf<NotificationButton?>()
   var notificationMetadata: NotificationMetadata? = null
@@ -346,7 +346,7 @@ internal constructor(
             }
         )
         descriptionAdapter =
-            object : PlayerNotificationManager.MediaDescriptionAdapter {
+            object : InternalNotificationManager.MediaDescriptionAdapter {
               override fun getCurrentContentTitle(player: Player): CharSequence {
                 return notificationMetadata?.title ?: player.mediaMetadata.title ?: ""
               }
@@ -366,7 +366,7 @@ internal constructor(
 
               override fun getCurrentLargeIcon(
                   player: Player,
-                  callback: PlayerNotificationManager.BitmapCallback,
+                  callback: InternalNotificationManager.BitmapCallback,
               ): Bitmap? {
                 val holder = getCurrentItemHolder() ?: return null
                 val source = notificationMetadata?.artworkUrl ?: player.mediaMetadata.artworkUri
@@ -429,7 +429,7 @@ internal constructor(
         }
 
         internalNotificationManager =
-            PlayerNotificationManager.Builder(context, NOTIFICATION_ID, CHANNEL_ID)
+          InternalNotificationManager.Builder(context, NOTIFICATION_ID, CHANNEL_ID)
                 .apply {
                   setChannelNameResourceId(R.string.playback_channel_name)
                   setMediaDescriptionAdapter(descriptionAdapter)
