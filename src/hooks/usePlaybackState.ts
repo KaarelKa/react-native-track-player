@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { SetStateAction, useEffect, useState } from 'react';
 
 import { getPlaybackState, addEventListener } from '../trackPlayer';
-import { Event } from '../constants';
+import { Event, State } from '../constants';
 import type { PlaybackState } from '../interfaces';
 
 /**
@@ -10,25 +10,29 @@ import type { PlaybackState } from '../interfaces';
  * Note: While it is fetching the initial state from the native module, the
  * returned state property will be `undefined`.
  * */
-export const usePlaybackState = (): PlaybackState | { state: undefined } => {
-  const [state, setState] = useState<PlaybackState | { state: undefined }>({
+export const usePlaybackStateWithoutInitialValue = (): PlaybackState | { state: undefined } => {
+  const [playbackState, setPlaybackState] = useState<
+    PlaybackState | { state: undefined }
+  >({
     state: undefined,
   });
   useEffect(() => {
     let mounted = true;
 
     getPlaybackState()
-      .then((initialState) => {
+      .then((fetchedState: PlaybackState | { state: undefined; }) => {
         if (!mounted) return;
         // Only set the state if it wasn't already set by the Event.PlaybackState listener below:
-        setState((state) => state ?? initialState);
+        setPlaybackState((currentState) =>
+          currentState.state ? currentState : fetchedState
+        );
       })
       .catch(() => {
         /** getState only throw while you haven't yet setup, ignore failure. */
       });
 
-    const sub = addEventListener(Event.PlaybackState, (state) => {
-      setState(state);
+    const sub = addEventListener<Event.PlaybackState>(Event.PlaybackState, (state: SetStateAction<PlaybackState | { state: undefined; }>) => {
+      setPlaybackState(state);
     });
 
     return () => {
@@ -37,5 +41,10 @@ export const usePlaybackState = (): PlaybackState | { state: undefined } => {
     };
   }, []);
 
-  return state;
+  return playbackState;
+};
+
+export const usePlaybackState = () => {
+  const state = usePlaybackStateWithoutInitialValue();
+  return state ?? State.None;
 };

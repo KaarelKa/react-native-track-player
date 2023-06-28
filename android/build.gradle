@@ -1,12 +1,14 @@
 buildscript {
+    ext.kotlin_version = '1.6.10'
     repositories {
         mavenLocal()
         mavenCentral()
         google()
+        maven { url 'https://jitpack.io' }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.2.2'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.10"
+        classpath 'com.android.tools.build:gradle:7.4.2'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10"
     }
 }
 
@@ -49,17 +51,36 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.doublesymmetry:kotlinaudio:v2.0.0-rc2'
+    // implementation 'com.github.doublesymmetry:kotlinaudio:v2.0.0-rc6'
     // used when building against local maven
 //    implementation "com.github.doublesymmetry:kotlin-audio:1.2.2"
 
     //noinspection GradleDynamicVersion
-    implementation "com.facebook.react:react-native:+"
-
+    def exoPlayerVersion = '2.18.1'
     implementation "com.google.android.exoplayer:exoplayer-ui:${exoPlayerVersion}"
-    
+    implementation "com.facebook.react:react-native:+"
+    implementation "com.google.android.exoplayer:exoplayer:${exoPlayerVersion}"
+    implementation "com.google.android.exoplayer:exoplayer-core:${exoPlayerVersion}"
+    api "com.google.android.exoplayer:exoplayer:${exoPlayerVersion}"
+    api "com.google.android.exoplayer:extension-mediasession:${exoPlayerVersion}"
+
+
+    implementation "androidx.media:media:1.1.0"
+    implementation "com.github.bumptech.glide:glide:4.7.1"
     // Make sure we're using androidx
     implementation "androidx.core:core-ktx:1.9.0"
     implementation "androidx.localbroadcastmanager:localbroadcastmanager:1.1.0"
+    implementation "androidx.lifecycle:lifecycle-process:2.6.1"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.3"
+    constraints {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0") {
+            because("kotlin-stdlib-jdk7 is now a part of kotlin-stdlib")
+        }
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0") {
+            because("kotlin-stdlib-jdk8 is now a part of kotlin-stdlib")
+        }
+    }
+
+    // Dependencies for kotlinaudio parts
+    implementation 'io.coil-kt:coil:1.4.0'
 }

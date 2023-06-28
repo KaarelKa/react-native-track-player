@@ -39,6 +39,11 @@ function resolveImportedPath(path?: number | string) {
 /**
  * Initializes the player with the specified options.
  *
+ * Note that on Android this method must only be called while the app is in the
+ * foreground, otherwise it will throw an error with code
+ * `'android_cannot_setup_player_in_background'`. In this case you can wait for
+ * the app to be in the foreground and try again.
+ *
  * @param options The options to initialize the player with.
  * @see https://react-native-track-player.js.org/docs/api/functions/lifecycle
  */
@@ -446,7 +451,7 @@ export async function getCurrentTrack(): Promise<number | null> {
 
 /**
  * Gets the duration of the current track in seconds.
- * @deprecated Use `TrackPlayer.getProgress().then((progress) => progress.buffered)` instead.
+ * @deprecated Use `TrackPlayer.getProgress().then((progress) => progress.duration)` instead.
  */
 export async function getDuration(): Promise<number> {
   return TrackPlayer.getDuration();
@@ -555,56 +560,4 @@ export async function getFailedDownloads(): Promise<string[]> {
 
 export async function setShouldDownloadOnWifiOnly(shouldDownloadOnWifiOnly: boolean): Promise<void> {
   return TrackPlayer.setDownloadOnWifiOnly(shouldDownloadOnWifiOnly)
-}
-
-export default {
-  // MARK: - General API
-  setupPlayer,
-  registerPlaybackService,
-  addEventListener,
-
-  // MARK: - Queue API
-  add,
-  remove,
-  removeUpcomingTracks,
-  skip,
-  skipToNext,
-  skipToPrevious,
-
-  // MARK: - Control Center / Notifications API
-  updateOptions,
-  updateMetadataForTrack,
-  clearNowPlayingMetadata,
-  updateNowPlayingMetadata,
-
-  // MARK: - Player API
-  reset,
-  play,
-  pause,
-  stop,
-  seekTo,
-  setVolume,
-  setRate,
-  setRepeatMode,
-
-  // MARK: - Getters
-  getVolume,
-  getRate,
-  getTrack,
-  getQueue,
-  getCurrentTrack,
-  getDuration,
-  getBufferedPosition,
-  getPosition,
-  getState,
-  getRepeatMode,
-
-  download,
-  removeDownload,
-  removeDownloadStartsWith,
-  getCompletedDownloads,
-  getActiveDownloads,
-  getRemovingDownloads,
-  getFailedDownloads,
-  setShouldDownloadOnWifiOnly,
 }

@@ -1,8 +1,8 @@
 package com.doublesymmetry.trackplayer.service
 
-import android.app.PendingIntent
+import android.app.*
+import android.content.Context
 import android.content.Intent
-import android.content.ServiceConnection
 import android.net.Uri
 import android.os.Binder
 import android.os.Build
@@ -10,11 +10,13 @@ import android.os.Bundle
 import android.os.IBinder
 import android.support.v4.media.RatingCompat
 import androidx.annotation.MainThread
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationCompat.PRIORITY_LOW
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.doublesymmetry.kotlinaudio.models.*
-import com.doublesymmetry.kotlinaudio.models.NotificationButton.*
-import com.doublesymmetry.kotlinaudio.players.QueuedAudioPlayer
-import com.doublesymmetry.trackplayer.R
+import com.doublesymmetry.trackplayer.kotlinaudio.models.*
+import com.doublesymmetry.trackplayer.kotlinaudio.models.NotificationButton.*
+import com.doublesymmetry.trackplayer.kotlinaudio.players.QueuedAudioPlayer
+import com.doublesymmetry.trackplayer.R as TrackPlayerR
 import com.doublesymmetry.trackplayer.extensions.NumberExt.Companion.toMilliseconds
 import com.doublesymmetry.trackplayer.extensions.NumberExt.Companion.toSeconds
 import com.doublesymmetry.trackplayer.extensions.asLibState
@@ -87,11 +89,41 @@ class MusicService : HeadlessJsTaskService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startTask(getTaskConfig(intent))
+        startAndStopEmptyNotificationToAvoidANR()
         return START_STICKY
+    }
+
+    /**
+     * Workaround for the "Context.startForegroundService() did not then call Service.startForeground()"
+     * within 5s" ANR and crash by creating an empty notification and stopping it right after. For more
+     * information see https://github.com/doublesymmetry/react-native-track-player/issues/1666
+     */
+    private fun startAndStopEmptyNotificationToAvoidANR() {
+        val notificationManager = this.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        var name = ""
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            name = "temporary_channel"
+            notificationManager.createNotificationChannel(
+                NotificationChannel(name, name, NotificationManager.IMPORTANCE_LOW)
+            )
+        }
+
+        val notification = NotificationCompat.Builder(this, name)
+            .setPriority(PRIORITY_LOW)
+            .setCategory(Notification.CATEGORY_SERVICE)
+            .build()
+        startForeground(EMPTY_NOTIFICATION_ID, notification)
+        @Suppress("DEPRECATION")
+        stopForeground(true)
     }
 
     @MainThread
     fun setupPlayer(playerOptions: Bundle?) {
+        if (this::player.isInitialized) {
+            print("Player was initialized. Prevent re-initializing again")
+            return
+        }
+
         val bufferConfig = BufferConfig(
             playerOptions?.getDouble(MIN_BUFFER_KEY)?.toMilliseconds()?.toInt(),
             playerOptions?.getDouble(MAX_BUFFER_KEY)?.toMilliseconds()?.toInt(),
@@ -101,10 +133,10 @@ class MusicService : HeadlessJsTaskService() {
 
         val cacheConfig = CacheConfig(playerOptions?.getDouble(MAX_CACHE_SIZE_KEY)?.toLong())
         val playerConfig = PlayerConfig(
-            true,
-            true,
-            playerOptions?.getBoolean(AUTO_HANDLE_INTERRUPTIONS) ?: false,
-            when(playerOptions?.getString(ANDROID_AUDIO_CONTENT_TYPE)) {
+            interceptPlayerActionsTriggeredExternally = true,
+            handleAudioBecomingNoisy = true,
+            handleAudioFocus = playerOptions?.getBoolean(AUTO_HANDLE_INTERRUPTIONS) ?: false,
+            audioContentType = when(playerOptions?.getString(ANDROID_AUDIO_CONTENT_TYPE)) {
                 "music" -> AudioContentType.MUSIC
                 "speech" -> AudioContentType.SPEECH
                 "sonification" -> AudioContentType.SONIFICATION
@@ -119,6 +151,14 @@ class MusicService : HeadlessJsTaskService() {
         player = QueuedAudioPlayer(this@MusicService, playerConfig, bufferConfig, cacheConfig)
         player.automaticallyUpdateNotificationMetadata = automaticallyUpdateNotificationMetadata
         observeEvents()
+    }
+
+    @MainThread
+    fun emit(event: String?, data: Bundle? = null) {
+        val intent = Intent(EVENT_INTENT)
+        intent.putExtra(EVENT_KEY, event)
+        if (data != null) intent.putExtra(DATA_KEY, data)
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
     @MainThread
@@ -146,36 +186,37 @@ class MusicService : HeadlessJsTaskService() {
 
         if (notificationCapabilities.isEmpty()) notificationCapabilities = capabilities
 
-        val buttonsList = mutableListOf<NotificationButton>()
-
-        notificationCapabilities.forEach {
+        val buttonsList = notificationCapabilities.mapNotNull {
             when (it) {
                 Capability.PLAY, Capability.PAUSE -> {
                     val playIcon = BundleUtils.getIconOrNull(this, options, "playIcon")
                     val pauseIcon = BundleUtils.getIconOrNull(this, options, "pauseIcon")
-                    buttonsList.add(PLAY_PAUSE(playIcon = playIcon, pauseIcon = pauseIcon))
+                    PLAY_PAUSE(playIcon = playIcon, pauseIcon = pauseIcon)
                 }
                 Capability.STOP -> {
                     val stopIcon = BundleUtils.getIconOrNull(this, options, "stopIcon")
-                    buttonsList.add(STOP(icon = stopIcon))
+                    STOP(icon = stopIcon)
                 }
                 Capability.SKIP_TO_NEXT -> {
                     val nextIcon = BundleUtils.getIconOrNull(this, options, "nextIcon")
-                    buttonsList.add(NEXT(icon = nextIcon, isCompact = isCompact(it)))
+                    NEXT(icon = nextIcon, isCompact = isCompact(it))
                 }
                 Capability.SKIP_TO_PREVIOUS -> {
                     val previousIcon = BundleUtils.getIconOrNull(this, options, "previousIcon")
-                    buttonsList.add(PREVIOUS(icon = previousIcon, isCompact = isCompact(it)))
+                    PREVIOUS(icon = previousIcon, isCompact = isCompact(it))
                 }
                 Capability.JUMP_FORWARD -> {
-                    val forwardIcon = BundleUtils.getIcon(this, options, "forwardIcon", R.drawable.forward)
-                    buttonsList.add(FORWARD(icon = forwardIcon, isCompact = isCompact(it)))
+                    val forwardIcon = BundleUtils.getIcon(this, options, "forwardIcon", TrackPlayerR.drawable.forward)
+                    FORWARD(icon = forwardIcon, isCompact = isCompact(it))
                 }
                 Capability.JUMP_BACKWARD -> {
-                    val backwardIcon = BundleUtils.getIcon(this, options, "rewindIcon", R.drawable.rewind)
-                    buttonsList.add(BACKWARD(icon = backwardIcon, isCompact = isCompact(it)))
+                    val backwardIcon = BundleUtils.getIcon(this, options, "rewindIcon", TrackPlayerR.drawable.rewind)
+                    BACKWARD(icon = backwardIcon, isCompact = isCompact(it))
                 }
-                else -> return@forEach
+                Capability.SEEK_TO -> {
+                    SEEK_TO
+                }
+                else -> { null }
             }
         }
 
@@ -323,7 +364,7 @@ class MusicService : HeadlessJsTaskService() {
 
     @MainThread
     fun seekTo(seconds: Float) {
-        player.seek((seconds.toLong()), TimeUnit.SECONDS)
+        player.seek((seconds * 1000).toLong(), TimeUnit.MILLISECONDS)
     }
 
     @MainThread
@@ -472,23 +513,30 @@ class MusicService : HeadlessJsTaskService() {
 
         scope.launch {
             event.notificationStateChange.collect {
-                when (it) {
-                    is NotificationState.POSTED -> {
-                        startForeground(it.notificationId, it.notification)
-                    }
-                    is NotificationState.CANCELLED -> {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                            stopForeground(STOP_FOREGROUND_REMOVE)
-                        } else {
-                            @Suppress("DEPRECATION")
-                            stopForeground(true)
-                        }
-
-                        stopSelf()
-                        exitProcess(0)
-                    }
-                }
-            }
+              when (it) {
+                  is NotificationState.POSTED -> {
+                      if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                      {
+                          with(androidx.core.app.NotificationManagerCompat.from(applicationContext)) {
+                              notify(it.notificationId, it.notification)
+                          }
+                      }
+                      else {
+                          startForeground(it.notificationId, it.notification)
+                      }
+                  }
+                  is NotificationState.CANCELLED -> {
+                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                          stopForeground(STOP_FOREGROUND_REMOVE)
+                      } else {
+                          @Suppress("DEPRECATION")
+                          stopForeground(true)
+                      }
+          
+                      stopSelf()
+                  }
+              }
+          }
         }
 
         scope.launch {
@@ -572,14 +620,6 @@ class MusicService : HeadlessJsTaskService() {
         return bundle
     }
 
-    @MainThread
-    private fun emit(event: String?, data: Bundle? = null) {
-        val intent = Intent(EVENT_INTENT)
-        intent.putExtra(EVENT_KEY, event)
-        if (data != null) intent.putExtra(DATA_KEY, data)
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
-    }
-
     override fun getTaskConfig(intent: Intent?): HeadlessJsTaskConfig {
         return HeadlessJsTaskConfig(TASK_KEY, Arguments.createMap(), 0, true)
     }
@@ -598,8 +638,18 @@ class MusicService : HeadlessJsTaskService() {
         when (appKilledPlaybackBehavior) {
             AppKilledPlaybackBehavior.PAUSE_PLAYBACK -> player.pause()
             AppKilledPlaybackBehavior.STOP_PLAYBACK_AND_REMOVE_NOTIFICATION -> {
-                player.stop()
                 player.clear()
+                player.stop()
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } else {
+                    @Suppress("DEPRECATION")
+                    stopForeground(true)
+                }
+
+                stopSelf()
+                exitProcess(0)
             }
             else -> {}
         }
@@ -626,8 +676,9 @@ class MusicService : HeadlessJsTaskService() {
     }
 
     companion object {
+        const val EMPTY_NOTIFICATION_ID = 1
         const val STATE_KEY = "state"
-        const val ERROR_KEY  = "error"
+        const val ERROR_KEY = "error"
         const val EVENT_KEY = "event"
         const val DATA_KEY = "data"
         const val TRACK_KEY = "track"

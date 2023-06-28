@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef } from 'react';
 
 import { addEventListener } from '../trackPlayer';
 import { Event } from '../constants';
-import type { EventsPayloadByEvent } from '../interfaces';
 
 /**
  * Attaches a handler to the given TrackPlayer events and performs cleanup on unmount
@@ -11,7 +11,7 @@ import type { EventsPayloadByEvent } from '../interfaces';
  */
 export const useTrackPlayerEvents = <
   T extends Event[],
-  H extends (data: EventsPayloadByEvent[T[number]]) => void
+  H extends (data: any) => void
 >(
   events: T,
   handler: H
@@ -38,7 +38,6 @@ export const useTrackPlayerEvents = <
 
     const subs = events.map((type) =>
       addEventListener(type, (payload) => {
-        // @ts-expect-error - we know the type is correct
         savedHandler.current({ ...payload, type });
       })
     );

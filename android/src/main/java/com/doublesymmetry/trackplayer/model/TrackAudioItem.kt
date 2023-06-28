@@ -1,8 +1,8 @@
 package com.doublesymmetry.trackplayer.model
 
-import com.doublesymmetry.kotlinaudio.models.AudioItem
-import com.doublesymmetry.kotlinaudio.models.AudioItemOptions
-import com.doublesymmetry.kotlinaudio.models.MediaType
+import com.doublesymmetry.trackplayer.kotlinaudio.models.AudioItem
+import com.doublesymmetry.trackplayer.kotlinaudio.models.AudioItemOptions
+import com.doublesymmetry.trackplayer.kotlinaudio.models.MediaType
 
 data class TrackAudioItem(
     val track: Track,
@@ -13,5 +13,6 @@ data class TrackAudioItem(
     override var albumTitle: String? = null,
     override val artwork: String? = null,
     override val duration: Long = -1,
-    override val options: AudioItemOptions? = null
+    override val options: AudioItemOptions? = null,
+    override val trackId: String? = null
 ): AudioItem

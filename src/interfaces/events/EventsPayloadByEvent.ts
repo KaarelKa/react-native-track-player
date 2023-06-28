@@ -16,7 +16,6 @@ import type { RemoteJumpBackwardEvent } from './RemoteJumpBackwardEvent';
 import type { RemoteSeekEvent } from './RemoteSeekEvent';
 import type { RemoteSetRatingEvent } from './RemoteSetRatingEvent';
 import type { RemoteDuckEvent } from './RemoteDuckEvent';
-import type { DownloadChangedEvent } from './DownloadChangedEvent';
 
 export interface EventsPayloadByEvent {
   [Event.PlaybackState]: PlaybackState & { type: Event.PlaybackState };
@@ -63,7 +62,4 @@ export interface EventsPayloadByEvent {
   [Event.RemoteLike]: { type: Event.RemoteLike };
   [Event.RemoteDislike]: { type: Event.RemoteDislike };
   [Event.RemoteBookmark]: { type: Event.RemoteBookmark };
-  [Event.DownloadChanged]: DownloadChangedEvent & {
-    type: Event.DownloadChanged;
-  };
 }
