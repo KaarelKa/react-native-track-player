@@ -2,6 +2,7 @@ import { Event } from '../../constants';
 
 import type { PlaybackState } from '../PlaybackState';
 import type { PlaybackErrorEvent } from './PlaybackErrorEvent';
+import { PlayerErrorEvent } from './PlayerErrorEvent';
 import type { PlaybackQueueEndedEvent } from './PlaybackQueueEndedEvent';
 import type { PlaybackTrackChangedEvent } from './PlaybackTrackChangedEvent';
 import type { PlaybackActiveTrackChangedEvent } from './PlaybackActiveTrackChangedEvent';
@@ -19,6 +20,7 @@ import type { RemoteDuckEvent } from './RemoteDuckEvent';
 import type { DownloadChangedEvent } from './DownloadChangedEvent';
 
 export interface EventPayloadByEvent {
+  [Event.PlayerError]: PlayerErrorEvent;
   [Event.PlaybackState]: PlaybackState;
   [Event.PlaybackError]: PlaybackErrorEvent;
   [Event.PlaybackQueueEnded]: PlaybackQueueEndedEvent;

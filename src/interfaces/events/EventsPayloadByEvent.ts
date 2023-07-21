@@ -5,6 +5,7 @@ import type { PlaybackErrorEvent } from './PlaybackErrorEvent';
 import type { PlaybackQueueEndedEvent } from './PlaybackQueueEndedEvent';
 import type { PlaybackTrackChangedEvent } from './PlaybackTrackChangedEvent';
 import type { PlaybackActiveTrackChangedEvent } from './PlaybackActiveTrackChangedEvent';
+import { PlayerErrorEvent } from './PlayerErrorEvent';
 import type { PlaybackMetadataReceivedEvent } from './PlaybackMetadataReceivedEvent';
 import type { PlaybackPlayWhenReadyChangedEvent } from './PlaybackPlayWhenReadyChangedEvent';
 import type { PlaybackProgressUpdatedEvent } from './PlaybackProgressUpdatedEvent';
@@ -38,6 +39,7 @@ export interface EventsPayloadByEvent {
   [Event.PlaybackProgressUpdated]: PlaybackProgressUpdatedEvent & {
     type: Event.PlaybackProgressUpdated;
   };
+  [Event.PlayerError]: PlayerErrorEvent & { type: Event.PlayerError };
   [Event.RemotePlay]: { type: Event.RemotePlay };
   [Event.RemotePlayId]: RemotePlayIdEvent & { type: Event.RemotePlayId };
   [Event.RemotePlaySearch]: RemotePlaySearchEvent & {
