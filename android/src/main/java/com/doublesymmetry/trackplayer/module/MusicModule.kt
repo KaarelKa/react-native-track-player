@@ -58,7 +58,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         try {
           DownloadService.start(context, DownloadService::class.java)
         } catch (e: IllegalStateException) {
-          DownloadService.startForeground(context, DownloadService::class.java)
+          DownloadService.startForeground(context, DownloadService::class.java, FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
         }
     }
 
