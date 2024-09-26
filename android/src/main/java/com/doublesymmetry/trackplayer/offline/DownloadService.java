@@ -35,6 +35,8 @@ import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.Log;
 import com.google.android.exoplayer2.util.NotificationUtil;
 import com.google.android.exoplayer2.util.Util;
+import com.google.android.exoplayer2.offline.DownloadManager;
+import com.google.android.exoplayer2.offline.Download;
 import java.util.HashMap;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -931,7 +933,7 @@ public abstract class DownloadService extends Service {
             Log.e(
                 TAG,
                 "The service must be declared with a foregroundServiceType that includes "
-                    + foregroundServiceManifestType);
+                    + ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
             throw e;
           }
           } else {
@@ -952,28 +954,6 @@ public abstract class DownloadService extends Service {
     }
   }
 
-    // @RequiresApi(29)
-    //   private static class Api29 {
-    //     @DoNotInline
-    //     public static void startForeground(
-    //         Service mediaSessionService,
-    //         int notificationId,
-    //         Notification notification,
-    //         int foregroundServiceType,
-    //         String foregroundServiceManifestType) {
-    //       try {
-    //         // startForeground() will throw if the service's foregroundServiceType is not defined.
-    //         mediaSessionService.startForeground(notificationId, notification, foregroundServiceType);
-    //       } catch (RuntimeException e) {
-    //         Log.e(
-    //             TAG,
-    //             "The service must be declared with a foregroundServiceType that includes "
-    //                 + foregroundServiceManifestType);
-    //         throw e;
-    //       }
-    //     }
-    //     private Api29() {}
-    //   }
 
   private static final class DownloadManagerHelper implements DownloadManager.Listener {
 
