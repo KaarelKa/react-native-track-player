@@ -37,6 +37,7 @@ import com.google.android.exoplayer2.util.NotificationUtil;
 import com.google.android.exoplayer2.util.Util;
 import com.google.android.exoplayer2.offline.DownloadManager;
 import com.google.android.exoplayer2.offline.Download;
+import com.google.android.exoplayer2.offline.DownloadRequest;
 import java.util.HashMap;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;

@@ -84,4 +84,5 @@ dependencies {
 
     // Dependencies for kotlinaudio parts
     implementation 'io.coil-kt:coil:1.4.0'
+    compileOnly 'org.checkerframework:checker-qual:' + '3.13.0'
 }
