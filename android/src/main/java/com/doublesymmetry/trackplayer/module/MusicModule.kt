@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.support.v4.media.RatingCompat
+import android.content.pm.ServiceInfo
 import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.doublesymmetry.trackplayer.kotlinaudio.models.Capability
@@ -22,7 +23,7 @@ import com.doublesymmetry.trackplayer.utils.RejectionException
 import com.facebook.react.bridge.*
 import com.google.android.exoplayer2.DefaultLoadControl.*
 import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.offline.DownloadService;
+import com.doublesymmetry.trackplayer.offline.DownloadService;
 import com.doublesymmetry.trackplayer.offline.DownloadTracker;
 import com.doublesymmetry.trackplayer.offline.DownloadUtil;
 import kotlinx.coroutines.MainScope
@@ -58,7 +59,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
         try {
           DownloadService.start(context, DownloadService::class.java)
         } catch (e: IllegalStateException) {
-          DownloadService.startForeground(context, DownloadService::class.java, FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+          DownloadService.startForeground(context, DownloadService::class.java)
         }
     }
 
